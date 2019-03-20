@@ -303,7 +303,8 @@ public class SkinManager {
 
     public static class SkinConfig {
 
-        private final Map<ViewType<? extends View>, List<SkinApplicator<? extends View>>> mSkinApplicator;
+        private final Map<ViewType<? extends View>, List<SkinApplicator<? extends View>>> mSkinApplicator
+                = CollUtils.newMap();
 
         boolean defaultUse = true;
 
@@ -319,20 +320,17 @@ public class SkinManager {
             }
         };
 
-
-        public SkinConfig() {
-            mSkinApplicator = CollUtils.newMap();
-        }
-
-
         public <T extends View> void registerSkinApplicator(ViewType<T> type, SkinApplicator<? extends View> skinApplicator) {
-            List<SkinApplicator<? extends View>> skinApplicators = mSkinApplicator.get(type);
+            synchronized (mSkinApplicator) {
+                List<SkinApplicator<? extends View>> skinApplicators = mSkinApplicator.get(type);
 
-            if (skinApplicators == null) {
-                skinApplicators = new LinkedList<>();
-                mSkinApplicator.put(type, skinApplicators);
+                if (skinApplicators == null) {
+                    skinApplicators = new LinkedList<>();
+                    mSkinApplicator.put(type, skinApplicators);
+                }
+
+                skinApplicators.add(0, skinApplicator);
             }
-            skinApplicators.add(0, skinApplicator);
         }
 
     }
