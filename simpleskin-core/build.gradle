@@ -1,5 +1,21 @@
 apply plugin: 'com.android.library'
 apply plugin: 'kotlin-android'
+apply plugin: 'maven'
+
+group = 'cn.fxlcy.libs.skin'
+version = '1.0.0'
+
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            //提交到远程服务器：
+            repository(url: mavenUrl) {
+                authentication(userName: mavenUn, password: mavenPwd)
+            }
+        }
+    }
+}
+
 
 android {
     compileSdkVersion 28
@@ -8,7 +24,7 @@ android {
 
     defaultConfig {
         minSdkVersion 15
-        targetSdkVersion 27
+        targetSdkVersion 28
         versionCode 1
         versionName "1.0"
 
