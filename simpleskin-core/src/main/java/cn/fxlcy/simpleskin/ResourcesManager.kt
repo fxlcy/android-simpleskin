@@ -28,7 +28,7 @@ class ResourcesManager private constructor() {
             x = mReferenceQueue.poll()
 
             x?.get()?.apply {
-                val skinName = mSkinInfo.skinName
+                val skinName = skinInfo.skinName
                 mResources.remove(skinName)
                 mCacheResources[skinName] = SoftReference(this)
             }
@@ -59,7 +59,7 @@ class ResourcesManager private constructor() {
             if (softRef != null) {
                 val resources = softRef.get()
                 if (resources != null) {
-                    mResources[resources.mSkinInfo.skinName] = WeakReference(resources)
+                    mResources[resources.skinInfo.skinName] = WeakReference(resources)
                     return resources
                 }
             }
@@ -69,7 +69,8 @@ class ResourcesManager private constructor() {
             val assetManager = AssetManagerUtils.createAssetManager(context, path)
                     ?: throw RuntimeException("assets parsing failure")
 
-            val resources = SkinResources(skinInfo, assetManager, context.resources, getPackageInfo(context, path))
+            val resources = SkinResources.getSkinResource(assetManager, skinInfo, context.resources, getPackageInfo(context, path)
+                    .packageName)
             mResources[skinName] = WeakReference(resources)
 
 
@@ -88,7 +89,7 @@ class ResourcesManager private constructor() {
 
 
     companion object {
-
+        @JvmStatic
         private var sInstance: ResourcesManager? = null
 
 

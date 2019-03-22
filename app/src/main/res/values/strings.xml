@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">SimpleSkin</string>
+
+    <string name="skin_black">background</string>
+
+
+    <string name="test_text">金山词霸</string>
 </resources>

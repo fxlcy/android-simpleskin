@@ -9,9 +9,9 @@ public abstract class SkinApplicator<T extends View> {
 
     protected abstract String[] getAttrs();
 
-    protected abstract void apply(T view, Resources resources, Resources.Theme theme, String attrName, int value);
+    protected abstract void apply(T view, SkinResources resources, Resources.Theme theme, String attrName, int value);
 
-    public final String[] attrs() {
+    final String[] attrs() {
         if (mAttrs == null) {
             mAttrs = getAttrs();
         }
@@ -19,8 +19,8 @@ public abstract class SkinApplicator<T extends View> {
         return mAttrs;
     }
 
-    public final void apply(T view, String attrName, int value) {
-        apply(view, SkinManager.getInstance().getResource(view.getContext())
+    final void apply(T view, String attrName, int value) {
+        apply(view, SkinManager.getInstance().getResources(view.getContext())
                 , view.getContext().getTheme(), attrName, value);
     }
 

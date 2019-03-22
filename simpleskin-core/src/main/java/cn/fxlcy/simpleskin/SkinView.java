@@ -5,7 +5,7 @@ import android.view.View;
 import java.lang.ref.WeakReference;
 import java.util.List;
 
-public class SkinView {
+final class SkinView {
     private WeakReference<View> mView;
 
     private List<SkinViewAttr> mAttrs;

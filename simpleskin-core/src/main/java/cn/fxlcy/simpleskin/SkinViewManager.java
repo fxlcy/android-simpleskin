@@ -2,11 +2,13 @@ package cn.fxlcy.simpleskin;
 
 import android.app.Activity;
 import android.content.Context;
-import android.content.res.Resources;
+import android.content.res.TypedArray;
 import android.view.View;
 
-import java.util.Collection;
+import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.WeakHashMap;
 
 import cn.fxlcy.simpleskin.util.ContextUtils;
@@ -15,10 +17,14 @@ import cn.fxlcy.simpleskin.util.ContextUtils;
 /**
  * 所有换肤的view集合管理类
  */
-public class SkinViewManager {
+public final class SkinViewManager {
 
 
-    private WeakHashMap<Context, SkinViewWeakList> mSkinViews = new WeakHashMap<>();
+    private final WeakHashMap<Context, SkinViewWeakList> mSkinViews = new WeakHashMap<>();
+
+    private final WeakHashMap<Context, List<SkinThemeAttr>> mSkinThemeAttrs = new WeakHashMap<>();
+
+    private final static String TAG = "SkinViewManager";
 
 
     private static SkinViewManager sInstance;
@@ -41,11 +47,14 @@ public class SkinViewManager {
 
 
     public void applySkin() {
-        Collection<SkinViewWeakList> weakLinkedLists = mSkinViews.values();
+        Set<Map.Entry<Context, SkinViewWeakList>> entries = mSkinViews.entrySet();
 
-        Resources resources = null;
+        SkinResources resources = null;
 
-        for (SkinViewWeakList skinViews : weakLinkedLists) {
+        for (Map.Entry<Context, SkinViewWeakList> entry : entries) {
+
+            final SkinViewWeakList skinViews = entry.getValue();
+
             for (SkinView view : skinViews) {
                 if (view != null && view.getView() != null) {
                     View v = view.getView();
@@ -53,25 +62,41 @@ public class SkinViewManager {
                     //判断是否是重写view实现的换肤
                     if (v instanceof SkinViewChanger && ((SkinViewChanger) v).skinEnabled()) {
                         if (resources == null) {
-                            resources = SkinManager.getInstance().getResource(v.getContext());
+                            resources = SkinManager.getInstance().getResources(v.getContext());
                         }
-                        ((SkinViewChanger) v).onSkinChanged(resources, v.getContext().getTheme());
-                    }
 
-                    final List<SkinViewAttr> attrs = view.getAttrs();
+                        ((SkinViewChanger) v)
+                                .onSkinChanged(new SkinViewChanger.Helper(v, view.getAttrs())
+                                        , resources, v.getContext().getTheme());
+                    } else {
+                        final List<SkinViewAttr> attrs = view.getAttrs();
 
-                    if (attrs != null) {
-                        for (SkinViewAttr attr : view.getAttrs()) {
-                            attr.apply(view.getView());
+                        if (attrs != null) {
+                            for (SkinViewAttr attr : view.getAttrs()) {
+                                attr.apply(view.getView());
+                            }
                         }
                     }
+                }
+            }
+        }
+
+        //应用主题
+        final Set<Map.Entry<Context, List<SkinThemeAttr>>> entrySet = mSkinThemeAttrs.entrySet();
+
+        for (Map.Entry<Context, List<SkinThemeAttr>> entry : entrySet) {
+            final Activity activity = ContextUtils.getActivityByContext(entry.getKey());
+            final List<SkinThemeAttr> attrs = entry.getValue();
+            if (activity != null) {
+                for (SkinThemeAttr attr : attrs) {
+                    attr.apply(activity);
                 }
             }
         }
     }
 
 
-    public boolean addSkinView(View view, List<SkinViewAttr> attrs) {
+    boolean addSkinView(View view, List<SkinViewAttr> attrs) {
         Context context = view.getContext();
 
         Activity activity = ContextUtils.getActivityByContext(context);
@@ -92,4 +117,44 @@ public class SkinViewManager {
     }
 
 
+    void loadSkinThemeAttrs(Context context, SkinViewInflaterFactory factory) {
+        final Activity activity = ContextUtils.getActivityByContext(context);
+
+        int themeAttrArr[] = SkinManager.getInstance().getSkinThemeAttrArr(factory);
+        if (themeAttrArr.length > 0) {
+            final TypedArray a = context.obtainStyledAttributes(themeAttrArr);
+
+
+            boolean hasSkin = SkinManager.getInstance().getCurrentSkin() != null;
+
+            List<SkinThemeAttr> skinThemeAttrs = null;
+
+            for (int i = 0; i < themeAttrArr.length; i++) {
+                int resourceId = a.getResourceId(i, 0);
+
+                if (resourceId != 0) {
+                    int attrId = themeAttrArr[i];
+                    SkinThemeApplicator applicator = SkinManager.getInstance().getSkinThemeApplicator(factory,
+                            attrId);
+                    SkinThemeAttr attr = new SkinThemeAttr(attrId, resourceId, applicator);
+
+                    if (skinThemeAttrs == null) {
+                        skinThemeAttrs = new LinkedList<>();
+                    }
+
+                    skinThemeAttrs.add(attr);
+
+                    if (hasSkin) {
+                        attr.apply(activity);
+                    }
+                }
+            }
+
+            a.recycle();
+
+            if (skinThemeAttrs != null) {
+                mSkinThemeAttrs.put(context, skinThemeAttrs);
+            }
+        }
+    }
 }

@@ -1,259 +1,225 @@
 package cn.fxlcy.simpleskin;
 
-import android.content.pm.PackageInfo;
+import android.content.Context;
 import android.content.res.AssetManager;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.content.res.Resources;
 import android.graphics.drawable.Drawable;
 import android.os.Build;
+import android.util.DisplayMetrics;
 
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
 
-public class SkinResources extends Resources {
-    final SkinInfo mSkinInfo;
-    private Resources mSuperResources;
-    private PackageInfo mPackageInfo;
+public class SkinResources {
+    private String mPackageName;
 
+    private Configuration mConfiguration;
+    private DisplayMetrics mDisplayMetrics;
 
-    public SkinResources(SkinInfo skinInfo, AssetManager assets, Resources resources, PackageInfo packageInfo) {
-        super(assets, resources.getDisplayMetrics(), resources.getConfiguration());
-        mSuperResources = resources;
-        this.mSkinInfo = skinInfo;
-        this.mPackageInfo = packageInfo;
+    protected final static String TAG = "SkinResources";
+
+    private Resources mResources;
+
+    SkinInfo getSkinInfo() {
+        return null;
     }
 
 
-    @Override
-    public Drawable getDrawable(int id) throws NotFoundException {
+    public static SkinResources getSkinResource(Context context) {
+        return new SkinResources(context.getResources(), context.getPackageName());
+    }
+
+
+    public static SkinResources getSkinResource(AssetManager assetManager, SkinInfo skinInfo, Resources superResource, String packageName) {
+        return new DefaultSkinResources(assetManager, skinInfo, superResource, packageName);
+    }
+
+    private SkinResources(Resources resources, String packageName) {
+        mConfiguration = resources.getConfiguration();
+        mDisplayMetrics = resources.getDisplayMetrics();
+
+        this.mPackageName = packageName;
+        mResources = resources;
+    }
+
+    public Resources getResources() {
+        return mResources;
+    }
+
+
+    public final DisplayMetrics getDisplayMetrics() {
+        return mDisplayMetrics;
+    }
+
+    public final Configuration getConfiguration() {
+        return mConfiguration;
+    }
+
+    public final String getPackageName() {
+        return mPackageName;
+    }
+
+    public final Drawable getDrawable(int id) throws Resources.NotFoundException {
         return getDrawable(id, null);
     }
 
 
-    @Override
-    public Drawable getDrawable(int id, Resources.Theme theme) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-        if (resourceId.isNew) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                return super.getDrawable(resourceId.id, theme);
-            } else {
-                return super.getDrawable(resourceId.id);
-            }
+    public final Drawable getDrawable(int id, Resources.Theme theme) throws Resources.NotFoundException {
+        final int densityDpi;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR1) {
+            densityDpi = getConfiguration().densityDpi;
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                return mSuperResources.getDrawable(resourceId.id, theme);
-            } else {
-                return mSuperResources.getDrawable(resourceId.id);
-            }
+            densityDpi = getDisplayMetrics().densityDpi;
+        }
+
+        return getDrawableForDensity(id, densityDpi, theme);
+    }
+
+
+    public final Drawable getDrawableForDensity(int id, int density) throws Resources.NotFoundException {
+        return getDrawableForDensity(id, density, null);
+    }
+
+
+    public Drawable getDrawableForDensity(int id, int density, Resources.Theme theme) {
+        final ResourceId resourceId = getResourceId(id);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            return getResources(resourceId).getDrawableForDensity(resourceId.id, density, theme);
+        } else {
+            return getResources(resourceId).getDrawableForDensity(resourceId.id, density);
         }
     }
 
 
-    @Override
-    public int getColor(int id, Resources.Theme theme) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                return super.getColor(resourceId.id, theme);
-            } else {
-                return super.getColor(resourceId.id);
-            }
+    public int getColor(int id, Resources.Theme theme) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return getResources(resourceId).getColor(resourceId.id, theme);
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                return mSuperResources.getColor(resourceId.id, theme);
-            } else {
-                return mSuperResources.getColor(resourceId.id);
-            }
+            return getResources(resourceId).getColor(resourceId.id);
         }
     }
 
-    @Override
-    public int getColor(int id) throws NotFoundException {
+
+    public final int getColor(int id) throws Resources.NotFoundException {
         return getColor(id, null);
     }
 
     @NotNull
-    @Override
-    public ColorStateList getColorStateList(int id, Resources.Theme theme) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                return super.getColorStateList(resourceId.id, theme);
-            } else {
-                return super.getColorStateList(resourceId.id);
-            }
+    public ColorStateList getColorStateList(int id, Resources.Theme theme) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            return getResources(resourceId).getColorStateList(resourceId.id, theme);
         } else {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                return mSuperResources.getColorStateList(resourceId.id, theme);
-            } else {
-                return mSuperResources.getColorStateList(resourceId.id);
-            }
+            return getResources(resourceId).getColorStateList(resourceId.id);
         }
     }
 
 
     @NotNull
-    @Override
-    public ColorStateList getColorStateList(int id) throws NotFoundException {
+    public final ColorStateList getColorStateList(int id) throws Resources.NotFoundException {
         return getColorStateList(id, null);
     }
 
 
-    @Override
-    public float getDimension(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getDimension(resourceId.id);
-        } else {
-            return mSuperResources.getDimension(resourceId.id);
-        }
+    public float getDimension(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getDimension(resourceId.id);
     }
 
-    @Override
-    public int getDimensionPixelOffset(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
 
-        if (resourceId.isNew) {
-            return super.getDimensionPixelOffset(resourceId.id);
-        } else {
-            return mSuperResources.getDimensionPixelOffset(resourceId.id);
-        }
+    public int getDimensionPixelOffset(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getDimensionPixelOffset(resourceId.id);
     }
 
-    @Override
-    public int getDimensionPixelSize(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
 
-        if (resourceId.isNew) {
-            return super.getDimensionPixelSize(resourceId.id);
-        } else {
-            return mSuperResources.getDimensionPixelSize(resourceId.id);
-        }
+    public int getDimensionPixelSize(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getDimensionPixelSize(resourceId.id);
     }
 
 
     @NotNull
-    @Override
-    public CharSequence getText(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getText(resourceId.id);
-        } else {
-            return mSuperResources.getText(resourceId.id);
-        }
+    public CharSequence getText(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getText(resourceId.id);
     }
 
-    @Override
-    public CharSequence getText(int id, CharSequence def) {
+    public final CharSequence getText(int id, CharSequence def) {
         CharSequence res = id != 0 ? getText(id) : null;
         return res != null ? res : def;
     }
 
     @NotNull
-    @Override
-    public String getString(int id) throws NotFoundException {
+    public final String getString(int id) throws Resources.NotFoundException {
         return getText(id).toString();
     }
 
 
     @NotNull
-    @Override
-    public String getString(int id, Object... formatArgs) throws NotFoundException {
+    public final String getString(int id, Object... formatArgs) throws Resources.NotFoundException {
         final String raw = getString(id);
         return format(raw, formatArgs);
     }
 
     @NotNull
-    @Override
-    public CharSequence getQuantityText(int id, int quantity) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getQuantityText(resourceId.id, quantity);
-        } else {
-            return mSuperResources.getQuantityText(resourceId.id, quantity);
-        }
+    public CharSequence getQuantityText(int id, int quantity) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getQuantityText(resourceId.id, quantity);
     }
 
 
     @NotNull
-    @Override
-    public String getQuantityString(int id, int quantity) throws NotFoundException {
+    public final String getQuantityString(int id, int quantity) throws Resources.NotFoundException {
         return getQuantityText(id, quantity).toString();
     }
 
 
     @NotNull
-    @Override
-    public String getQuantityString(int id, int quantity, Object... formatArgs) throws NotFoundException {
+    public final String getQuantityString(int id, int quantity, Object... formatArgs) throws Resources.NotFoundException {
         final String raw = getQuantityString(id, quantity);
         return format(raw, formatArgs);
     }
 
     @NotNull
-    @Override
-    public CharSequence[] getTextArray(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getTextArray(resourceId.id);
-        } else {
-            return mSuperResources.getTextArray(resourceId.id);
-        }
+    public CharSequence[] getTextArray(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getTextArray(resourceId.id);
     }
 
     @NotNull
-    @Override
-    public String[] getStringArray(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getStringArray(resourceId.id);
-        } else {
-            return mSuperResources.getStringArray(resourceId.id);
-        }
+    public String[] getStringArray(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getStringArray(resourceId.id);
     }
 
 
-    @Override
-    public int getInteger(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getInteger(resourceId.id);
-        } else {
-            return mSuperResources.getInteger(resourceId.id);
-        }
+    public int getInteger(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getInteger(resourceId.id);
     }
 
     @NotNull
-    @Override
-    public int[] getIntArray(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getIntArray(resourceId.id);
-        } else {
-            return mSuperResources.getIntArray(resourceId.id);
-        }
+    public int[] getIntArray(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getIntArray(resourceId.id);
     }
 
 
-    @Override
-    public boolean getBoolean(int id) throws NotFoundException {
-        final ResourceId resourceId = getNewId(id);
-
-        if (resourceId.isNew) {
-            return super.getBoolean(resourceId.id);
-        } else {
-            return mSuperResources.getBoolean(resourceId.id);
-        }
+    public boolean getBoolean(int id) throws Resources.NotFoundException {
+        final ResourceId resourceId = getResourceId(id);
+        return getResources(resourceId).getBoolean(resourceId.id);
     }
+
+
+    public int getIdentifier(int id) {
+        return id;
+    }
+
 
     private String format(String raw, Object... formatArgs) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -264,30 +230,74 @@ public class SkinResources extends Resources {
     }
 
 
-    private ResourceId getNewId(int id) {
-        try {
-            String typeName = mSuperResources.getResourceTypeName(id);
-            String entryName = mSuperResources.getResourceEntryName(id);
-
-            int newId = super.getIdentifier(entryName, typeName, mPackageInfo.packageName);
-            if (newId == 0) {
-                return new ResourceId(id, false);
-            } else {
-                return new ResourceId(newId, true);
-            }
-        } catch (Throwable e) {
-            return new ResourceId(id, false);
-        }
+    protected Resources getResources(ResourceId resourceId) {
+        return mResources;
     }
 
+    protected ResourceId getResourceId(int id) {
+        return new ResourceId(id, false);
+    }
 
-    private final static class ResourceId {
+    protected final static class ResourceId {
         private int id;
         private boolean isNew;
 
         private ResourceId(int id, boolean isNew) {
             this.id = id;
             this.isNew = isNew;
+        }
+
+    }
+
+
+    private final static class DefaultSkinResources extends SkinResources {
+        private Resources mSuperResources;
+
+        private SkinInfo mSkinInfo;
+
+        private DefaultSkinResources(AssetManager assetManager, SkinInfo skinInfo, Resources superResources, String packageName) {
+            super(new Resources(assetManager, superResources.getDisplayMetrics(), superResources.getConfiguration()), packageName);
+            mSuperResources = superResources;
+            mSkinInfo = skinInfo;
+        }
+
+        @Override
+        protected Resources getResources(ResourceId resourceId) {
+            if (resourceId.isNew) {
+                return getResources();
+            } else {
+                return mSuperResources;
+            }
+        }
+
+        @Override
+        public int getIdentifier(int id) {
+            return getResourceId(id).id;
+        }
+
+        @Override
+        SkinInfo getSkinInfo() {
+            return mSkinInfo;
+        }
+
+        @Override
+        protected ResourceId getResourceId(int id) {
+            final Resources resources = mSuperResources;
+
+            final String typeName = resources.getResourceTypeName(id);
+            final String entryName = resources.getResourceEntryName(id);
+
+
+            try {
+                int newId = getResources().getIdentifier(entryName, typeName, getPackageName());
+                if (newId == 0) {
+                    return new ResourceId(id, false);
+                } else {
+                    return new ResourceId(newId, true);
+                }
+            } catch (Throwable e) {
+                return new ResourceId(id, false);
+            }
         }
     }
 }

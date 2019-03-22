@@ -6,13 +6,15 @@
     android:layout_height="match_parent"
     android:gravity="center"
     android:orientation="vertical"
-    tools:context=".MainActivity">
+    tools:context=".test.MainActivity">
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:background="@color/colorAccent"
-        android:text="Hello World!" />
+        android:text="Hello World!"
+        app:skinBlackAttr="@string/skin_black"
+        tools:ignore="MissingPrefix" />
 
 
     <Button
@@ -29,9 +31,9 @@
         android:id="@+id/btn_restore_skin"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
+        android:background="@color/colorTest"
         android:onClick="onClick"
         android:text="重置皮肤"
-        android:textColor="@color/colorAccent"
         android:textSize="@dimen/btn_text_size" />
 
     <ImageView
@@ -44,4 +46,10 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:button="@drawable/bg_checkbox" />
+
+    <cn.fxlcy.simpleskin.test.MyTextView
+        android:layout_width="match_parent"
+        android:layout_height="30dp"
+        android:text="@string/test_text"
+        android:background="@color/colorPrimary"/>
 </LinearLayout>

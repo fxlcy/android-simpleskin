@@ -8,7 +8,7 @@ import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-public final class SkinViewWeakList implements Iterable<SkinView> {
+final class SkinViewWeakList implements Iterable<SkinView> {
     private final List<SkinView> mSkinViews = new LinkedList<>();
 
 

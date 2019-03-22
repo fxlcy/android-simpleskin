@@ -38,7 +38,7 @@ public final class ViewType<T extends View> {
 
     boolean conform(Class<? extends View> type) {
         if (inherit) {
-            return type.isAssignableFrom(type);
+            return this.type.isAssignableFrom(type);
         } else {
             return this.type == type;
         }
