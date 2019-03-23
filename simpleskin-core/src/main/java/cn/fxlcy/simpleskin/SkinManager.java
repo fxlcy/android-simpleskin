@@ -16,9 +16,11 @@ import com.huazhen.library.simplelayout.inflater.BaseViewInflater;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.ServiceLoader;
 import java.util.Set;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,7 +36,7 @@ public class SkinManager {
 
     private static SkinManager sInstance;
 
-    private final SkinConfig mGlobalConfig;
+    private final SkinConfig mGlobalConfig = new SkinConfig();
 
 
     private SkinInfo mCurrentSkin;
@@ -71,8 +73,8 @@ public class SkinManager {
         if (currentSkin == null) {
             sp.edit().clear().apply();
         } else {
-            sp.edit().putString(Constants.SP_SKIN_PATh, mCurrentSkin.getPath())
-                    .putString(Constants.SP_SKIN_KEY, mCurrentSkin.getSkinName())
+            sp.edit().putString(Constants.SP_SKIN_PATH, mCurrentSkin.path)
+                    .putString(Constants.SP_SKIN_SCHEMA, mCurrentSkin.schema.getName())
                     .apply();
         }
 
@@ -80,10 +82,20 @@ public class SkinManager {
     }
 
     private SkinManager() {
-        mGlobalConfig = new SkinConfig();
+        //通过ServiceLoader读取可能存在的皮肤全局配置注册器
+        final Iterable<SkinConfigGlobalRegister> registers = ServiceLoader.load(SkinConfigGlobalRegister.class);
+        if (registers != null) {
+            Iterator<SkinConfigGlobalRegister> iterator = registers.iterator();
+            if (iterator.hasNext()) {
+                while (iterator.hasNext()) {
+                    iterator.next().register(this);
+                }
 
-        DefaultSkinApplicatorRegister.register(this);
+                return;
+            }
+        }
 
+        new DefaultSkinConfigGlobalRegister().register(this);
     }
 
 
@@ -111,6 +123,15 @@ public class SkinManager {
             mGlobalSkinChangedListeners.remove(l);
         }
     }
+
+    public void registerGlobalSkinWhiteAttr(int attrId) {
+        mGlobalConfig.registerSkinWhiteAttr(attrId);
+    }
+
+    public void registerGlobalSkinBlackAttr(int attrId) {
+        mGlobalConfig.registerSkinBlackAttr(attrId);
+    }
+
 
     public <T extends View> void registerGlobalSkinApplicator(ViewType<T> type, SkinApplicator<? extends View> skinApplicator) {
         mGlobalConfig.registerSkinApplicator(type, skinApplicator);
@@ -154,7 +175,7 @@ public class SkinManager {
     }
 
 
-    SkinThemeApplicator getSkinThemeApplicator(SkinViewInflaterFactory factory, int attr) {
+    final SkinThemeApplicator getSkinThemeApplicator(SkinViewInflaterFactory factory, int attr) {
         SkinConfig config = factory.mConfig;
 
         if (config != SkinConfig.EMPTY) {
@@ -227,16 +248,30 @@ public class SkinManager {
         }
 
         SharedPreferences sp = application.getSharedPreferences(Constants.SP_NAME, Context.MODE_PRIVATE);
-        String name = sp
-                .getString(Constants.SP_SKIN_KEY, null);
-        String path = sp.getString(Constants.SP_SKIN_PATh, null);
+        String schema = sp
+                .getString(Constants.SP_SKIN_SCHEMA, null);
+        String path = sp.getString(Constants.SP_SKIN_PATH, null);
 
         SkinInfo skinInfo;
 
-        if (TextUtils.isEmpty(name) || TextUtils.isEmpty(path)) {
+        if (TextUtils.isEmpty(schema) || TextUtils.isEmpty(path)) {
             skinInfo = null;
         } else {
-            skinInfo = new SkinInfo(name, path);
+            SkinInfo.Schema sc = SkinInfo.Schema.valueOfName(schema);
+            if (sc != null) {
+                switch (sc) {
+                    case ASSETS:
+                        skinInfo = SkinInfo.obtainByAssets(application, path);
+                        break;
+                    case FILES:
+                        skinInfo = SkinInfo.obtainByLocalPath(path);
+                        break;
+                    default:
+                        skinInfo = null;
+                }
+            } else {
+                skinInfo = null;
+            }
         }
 
 
@@ -267,11 +302,31 @@ public class SkinManager {
     }
 
 
-    public void installInflater(Activity activity) {
-        installInflater(activity, null);
+    //从assets中的包切换皮肤
+    public void switchSkinByAssets(final Context context, final String path, final OnSkinChangedListener listener) {
+        if (listener == null) {
+            switchSkinInner(context, SkinInfo.obtainByAssets(context, path), null, false);
+        } else {
+            if (mThreadPool == null) {
+                mThreadPool = Executors.newSingleThreadExecutor();
+            }
+
+            mThreadPool.submit(new Runnable() {
+                @Override
+                public void run() {
+                    SkinInfo info = SkinInfo.obtainByAssets(context, path);
+                    switchSkinInner(context, info, listener, false);
+                }
+            });
+        }
     }
 
-    public void installInflater(final Activity activity, SkinConfig config) {
+
+    public void installViewFactory(Activity activity) {
+        installViewFactory(activity, null);
+    }
+
+    public void installViewFactory(final Activity activity, SkinConfig config) {
         final SkinViewInflaterFactory factory2;
         if (config == null) {
             factory2 = SkinViewInflaterFactory.getDefault();
@@ -404,7 +459,7 @@ public class SkinManager {
     }
 
 
-    public static class SkinConfig {
+    public final static class SkinConfig {
 
         public static SkinConfig obtain(Activity activity, OnSkinConfigInitializer initializer) {
             SkinConfig skinConfig = sSkinConfigCache.get(activity.getClass());
@@ -417,8 +472,12 @@ public class SkinManager {
             return skinConfig;
         }
 
-        private final static Map<Class<?>, SkinConfig> sSkinConfigCache = CollUtils.newMap();
 
+        public static SkinConfig newInstance() {
+            return new SkinConfig();
+        }
+
+        private final static Map<Class<?>, SkinConfig> sSkinConfigCache = CollUtils.newMap();
 
         /**
          * viewtype和SkinApplicator的映射关系缓存
@@ -432,9 +491,22 @@ public class SkinManager {
 
         private final Map<Integer, SkinThemeApplicator> mSkinThemeApplicator = CollUtils.newMap();
 
+        private final List<Integer> mSkinWhiteAttrs = new ArrayList<>();
+
+        private final List<Integer> mSkinBlackAttrs = new ArrayList<>();
+
+        private int[] mSkinWhiteAttrArr;
+
+        private int[] mSkinBlackAttrArr;
+
+
         private boolean mImmutable = false;
 
         boolean mDefaultUse = true;
+
+
+        private SkinConfig() {
+        }
 
         public void setDefaultUseSkin(boolean defaultUse) {
             if (mImmutable) {
@@ -453,6 +525,97 @@ public class SkinManager {
 
 
         final static SkinConfig EMPTY = new SkinConfig().newImmutable();
+
+
+        final int[] getWhiteAttrs() {
+            final SkinConfig globalConfig = SkinManager.getInstance().mGlobalConfig;
+
+            if (!globalConfig.mImmutable || !mImmutable) {
+                throw new RuntimeException("not initialized");
+            }
+
+            if (mSkinWhiteAttrArr == null) {
+                if (this == globalConfig) {
+                    mSkinWhiteAttrArr = new int[this.mSkinWhiteAttrs.size()];
+                    for (int i = 0; i < mSkinWhiteAttrArr.length; i++) {
+                        mSkinWhiteAttrArr[i] = mSkinWhiteAttrs.get(i);
+                    }
+                } else {
+                    mSkinWhiteAttrArr = new int[this.mSkinWhiteAttrs.size() + globalConfig.mSkinWhiteAttrs.size()];
+
+                    final int globalSize = globalConfig.mSkinBlackAttrs.size();
+
+                    for (int i = 0; i < mSkinWhiteAttrArr.length; i++) {
+                        if (i < globalSize) {
+                            mSkinWhiteAttrArr[i] = globalConfig.mSkinWhiteAttrs.get(i);
+                        } else {
+                            mSkinWhiteAttrArr[globalSize + i] = mSkinWhiteAttrs.get(i - globalSize);
+                        }
+                    }
+                }
+
+                Arrays.sort(mSkinWhiteAttrArr);
+            }
+
+            return mSkinWhiteAttrArr;
+        }
+
+
+        final int[] getBlackAttrs() {
+            final SkinConfig globalConfig = SkinManager.getInstance().mGlobalConfig;
+
+            if (!globalConfig.mImmutable || !mImmutable) {
+                throw new RuntimeException("not initialized");
+            }
+
+            if (mSkinBlackAttrArr == null) {
+                if (this == globalConfig) {
+                    mSkinBlackAttrArr = new int[this.mSkinBlackAttrs.size()];
+                    for (int i = 0; i < mSkinBlackAttrArr.length; i++) {
+                        mSkinBlackAttrArr[i] = mSkinBlackAttrs.get(i);
+                    }
+                } else {
+                    mSkinBlackAttrArr = new int[this.mSkinBlackAttrs.size() + globalConfig.mSkinBlackAttrs.size()];
+
+                    final int globalSize = globalConfig.mSkinBlackAttrs.size();
+
+                    for (int i = 0; i < mSkinBlackAttrArr.length; i++) {
+                        if (i < globalSize) {
+                            mSkinBlackAttrArr[i] = globalConfig.mSkinBlackAttrs.get(i);
+                        } else {
+                            mSkinBlackAttrArr[globalSize + i] = mSkinBlackAttrs.get(i - globalSize);
+                        }
+                    }
+                }
+
+                Arrays.sort(mSkinBlackAttrArr);
+            }
+
+            return mSkinBlackAttrArr;
+        }
+
+
+        public void registerSkinWhiteAttr(int attrId) {
+            if (mImmutable) {
+                throw new UnsupportedOperationException();
+            }
+
+
+            synchronized (mSkinWhiteAttrs) {
+                mSkinWhiteAttrs.add(attrId);
+            }
+        }
+
+        public void registerSkinBlackAttr(int attrId) {
+            if (mImmutable) {
+                throw new UnsupportedOperationException();
+            }
+
+
+            synchronized (mSkinBlackAttrs) {
+                mSkinBlackAttrs.add(attrId);
+            }
+        }
 
 
         public void registerSkinThemeApplicator(int attr, SkinThemeApplicator skinThemeApplicator) {

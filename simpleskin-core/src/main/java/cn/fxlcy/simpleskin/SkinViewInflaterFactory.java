@@ -58,12 +58,12 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
     }
 
 
-    private SkinApplicator<? extends View> getSkinApplicator(List<SkinApplicator<? extends View>> skinApplicatorList, String attrName) {
+    private SkinApplicator<? extends View> getSkinApplicator(List<SkinApplicator<? extends View>> skinApplicatorList, int attrId) {
         for (SkinApplicator<? extends View> skinApplicator : skinApplicatorList) {
-            String[] attrs = skinApplicator.attrs();
+            int[] attrs = skinApplicator.getAttrIds();
 
-            for (String a : attrs) {
-                if (attrName.equals(a)) {
+            for (int a : attrs) {
+                if (attrId == a) {
                     return skinApplicator;
                 }
             }
@@ -154,6 +154,7 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
         for (int i = 0; i < count; i++) {
             int intValue = attributeSet.getAttributeResourceValue(i, 0);
 
+
             if (intValue != 0) {
                 final int attrId = attributeSet.getAttributeNameResource(i);
                 final Boolean isAndroidAttr = isAndroidAttr(context, attributeSet, attrId, i);
@@ -161,7 +162,6 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
                 if (isAndroidAttr == null) {
                     break;
                 }
-
 
                 String attrName = attributeSet.getAttributeName(i);
 
@@ -183,13 +183,13 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
                 }
 
                 if (customChanger) {
-                    SkinViewAttr attr = new SkinViewAttr(attrId, attrName, intValue, null);
+                    SkinViewAttr attr = new SkinViewAttr(attrId, intValue, null);
                     skinViewAttrs.add(attr);
                 } else {
-                    SkinApplicator skinApplicator = getSkinApplicator(skinApplicatorList, attrName);
+                    SkinApplicator skinApplicator = getSkinApplicator(skinApplicatorList, attrId);
 
                     if (skinApplicator != null) {
-                        SkinViewAttr attr = new SkinViewAttr(attrId, attrName, intValue, skinApplicator);
+                        SkinViewAttr attr = new SkinViewAttr(attrId, intValue, skinApplicator);
 
                         skinViewAttrs.add(attr);
 
@@ -248,43 +248,30 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
                 //attr从小到大排序(必须)
                 Arrays.sort(whiteAttrIds);
 
-                final TypedArray ta = context.obtainStyledAttributes(attributeSet, whiteAttrIds);
+                List<SkinViewAttr> list = resolveWhiteAttrs(context, attributeSet, view, whiteAttrIds, customChanger, hasSkin, skinApplicatorList);
+                if (list != null) {
+                    if (skinViewAttrs == null) {
+                        skinViewAttrs = new LinkedList<>();
+                    }
 
-                for (int i = 0; i < whiteIndex; i++) {
-                    //获取白名单中所有attr 的value的resourceid
-                    int id = ta.getResourceId(i, 0);
+                    skinViewAttrs.addAll(list);
+                }
+            }
 
-                    if (id != 0) {
-                        final int attrId = whiteAttrIds[i];
-                        final String attrName = whiteArrMap.get(attrId);
+            if (mConfig != SkinManager.SkinConfig.EMPTY) {
+                final int[] whiteAttrs = mConfig.getWhiteAttrs();
 
+                if (whiteAttrs.length > 0) {
+                    List<SkinViewAttr> list = resolveWhiteAttrs(context, attributeSet, view, whiteAttrs, customChanger, hasSkin, skinApplicatorList);
+                    if (list != null) {
                         if (skinViewAttrs == null) {
                             skinViewAttrs = new LinkedList<>();
                         }
 
-                        if (customChanger) {
-                            skinViewAttrs.add(new SkinViewAttr(attrId, attrName, id, null));
-                        } else {
-                            final SkinApplicator skinApplicator = getSkinApplicator(skinApplicatorList, attrName);
-
-                            if (skinApplicator != null) {
-                                SkinViewAttr attr = new SkinViewAttr(attrId, attrName, id, skinApplicator);
-
-
-                                skinViewAttrs.add(attr);
-
-                                //如果当前有皮肤直接应用皮肤
-                                if (hasSkin) {
-                                    attr.apply(view);
-                                }
-                            }
-                        }
+                        skinViewAttrs.addAll(list);
                     }
                 }
-
-                ta.recycle();
             }
-
         }
 
 
@@ -301,5 +288,52 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
 
 
         return view;
+    }
+
+
+    //解析白名单属性
+    private List<SkinViewAttr> resolveWhiteAttrs(Context context, AttributeSet attributeSet, View view, int[] whiteAttrIds, boolean customChanger
+            , boolean hasSkin, List<SkinApplicator<? extends View>> skinApplicatorList) {
+        final TypedArray ta = context.obtainStyledAttributes(attributeSet, whiteAttrIds);
+
+        int whiteIndex = whiteAttrIds.length;
+
+        List<SkinViewAttr> skinViewAttrs = null;
+
+        for (int i = 0; i < whiteIndex; i++) {
+            //获取白名单中所有attr 的value的resourceid
+            int id = ta.getResourceId(i, 0);
+
+            if (id != 0) {
+                final int attrId = whiteAttrIds[i];
+//                final String attrName = whiteArrMap.get(attrId);
+
+                if (skinViewAttrs == null) {
+                    skinViewAttrs = new LinkedList<>();
+                }
+
+                if (customChanger) {
+                    skinViewAttrs.add(new SkinViewAttr(attrId, id, null));
+                } else {
+                    final SkinApplicator skinApplicator = getSkinApplicator(skinApplicatorList, attrId);
+
+                    if (skinApplicator != null) {
+                        SkinViewAttr attr = new SkinViewAttr(attrId, id, skinApplicator);
+
+
+                        skinViewAttrs.add(attr);
+
+                        //如果当前有皮肤直接应用皮肤
+                        if (hasSkin) {
+                            attr.apply(view);
+                        }
+                    }
+                }
+            }
+        }
+
+        ta.recycle();
+
+        return skinViewAttrs;
     }
 }

@@ -5,23 +5,23 @@ import android.view.View;
 
 public abstract class SkinApplicator<T extends View> {
 
-    private String[] mAttrs;
+    private int[] mAttrIds;
 
-    protected abstract String[] getAttrs();
+    protected abstract int[] attrIds();
 
-    protected abstract void apply(T view, SkinResources resources, Resources.Theme theme, String attrName, int value);
+    protected abstract void apply(T view, SkinResources resources, Resources.Theme theme, int attrId, int value);
 
-    final String[] attrs() {
-        if (mAttrs == null) {
-            mAttrs = getAttrs();
+    final int[] getAttrIds() {
+        if (mAttrIds == null) {
+            mAttrIds = attrIds();
         }
 
-        return mAttrs;
+        return mAttrIds;
     }
 
-    final void apply(T view, String attrName, int value) {
+    final void apply(T view,int attrId, int value) {
         apply(view, SkinManager.getInstance().getResources(view.getContext())
-                , view.getContext().getTheme(), attrName, value);
+                , view.getContext().getTheme(), attrId, value);
     }
 
 

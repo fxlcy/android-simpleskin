@@ -9,7 +9,7 @@
     tools:context=".test.MainActivity">
 
     <TextView
-        android:layout_width="wrap_content"
+        android:layout_width="@dimen/my_text_view_width"
         android:layout_height="wrap_content"
         android:background="@color/colorAccent"
         android:text="Hello World!"
@@ -50,6 +50,6 @@
     <cn.fxlcy.simpleskin.test.MyTextView
         android:layout_width="match_parent"
         android:layout_height="30dp"
-        android:text="@string/test_text"
-        android:background="@color/colorPrimary"/>
+        android:background="@color/colorPrimary"
+        android:text="@string/test_text" />
 </LinearLayout>

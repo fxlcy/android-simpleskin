@@ -13,14 +13,6 @@ public final class ViewType<T extends View> {
         this.inherit = inherit;
     }
 
-    public Class<? extends View> getType() {
-        return type;
-    }
-
-    public boolean isInherit() {
-        return inherit;
-    }
-
     @Override
     public boolean equals(Object obj) {
         if (obj instanceof ViewType) {

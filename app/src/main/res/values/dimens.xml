@@ -2,4 +2,7 @@
 <resources>
     <dimen name="btn_text_size">10sp</dimen>
 
+
+    <dimen name="my_text_view_width">100dp</dimen>
+
 </resources>

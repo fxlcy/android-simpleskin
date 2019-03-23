@@ -8,7 +8,7 @@ public final class Constants {
 
     public static final String SP_NAME = "skin_sp";
 
-    public static final String SP_SKIN_KEY = "skin_key_current_skin_key";
+    public static final String SP_SKIN_SCHEMA = "skin_key_current_skin_schema";
 
-    public static final String SP_SKIN_PATh = "skin_key_current_skin_path";
+    public static final String SP_SKIN_PATH = "skin_key_current_skin_path";
 }
