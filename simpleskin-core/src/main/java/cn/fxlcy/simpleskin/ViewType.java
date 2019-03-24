@@ -36,3 +36,4 @@ public final class ViewType<T extends View> {
         }
     }
 }
+
