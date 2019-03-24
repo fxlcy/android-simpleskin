@@ -4,89 +4,86 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
-import android.content.res.AssetManager
 import cn.fxlcy.lib.util.AssetManagerUtils
 import java.io.File
-import java.lang.ref.Reference
-import java.lang.ref.ReferenceQueue
 import java.lang.ref.SoftReference
-import java.lang.ref.WeakReference
-import java.util.concurrent.ConcurrentHashMap
 
 
 @SuppressLint("PrivateApi")
 class ResourcesManager private constructor() {
-    private val mResources = ConcurrentHashMap<SkinInfo, WeakReference<SkinResources>>()
+    private var mCurrentResources: SkinResources? = null
+    private var mCurrentSkinInfo: SkinInfo? = null
 
-    private val mCacheResources = ConcurrentHashMap<SkinInfo, SoftReference<SkinResources>>()
+    private val mCacheResources = HashMap<SkinInfo, SoftReference<SkinResources>>()
 
-    private val mReferenceQueue = ReferenceQueue<SkinResources>()
+    @Synchronized
+    fun getResources(context: Context, skinInfo: SkinInfo?): SkinResources {
+        var si = skinInfo
+        val cr = mCurrentResources
+        val csi = mCurrentSkinInfo
 
-
-    private fun expungeStaleEntries() {
-        var x: Reference<*>?
-
-        do {
-            x = mReferenceQueue.poll()
-
-            x?.get()?.apply {
-                mResources.remove(skinInfo)
-                mCacheResources[skinInfo] = SoftReference(this)
-            }
-        } while (x != null)
-    }
-
-
-    fun getResources(context: Context, skinInfo: SkinInfo): SkinResources {
-
-        synchronized(mResources) {
-
-            expungeStaleEntries()
-
-            var si = skinInfo
-
-            val weakRef = mResources[si]
-
-            if (weakRef != null) {
-                val resources = weakRef.get()
-                if (resources != null) {
-                    return resources
-                }
+        if (si == null) {
+            if (cr != null && csi != null) {
+                mCacheResources[csi] = SoftReference(cr)
+                mCurrentSkinInfo = null
+                mCurrentResources = null
             }
 
-
-            val softRef = mCacheResources[si]
-            if (softRef != null) {
-                val resources = softRef.get()
-                if (resources != null) {
-                    mResources[resources.skinInfo] = WeakReference(resources)
-                    return resources
-                }
-            }
-
-            val localPath = si.getLocalPath(context)
-            //获取assetManager
-            var am = AssetManagerUtils.createAssetManager(context, localPath)
-            if (am == null && si.schema == SkinInfo.Schema.ASSETS) {
-                //加载失败尝试重新解压加载
-                File(localPath).delete()
-                si = SkinInfo.obtainByAssets(context, skinInfo.path)
-                am = AssetManagerUtils.createAssetManager(context, localPath)
-            }
-
-            if (am == null) {
-                throw RuntimeException("assets parsing failure")
-            }
-
-            val resources = SkinResources.getSkinResource(am, skinInfo, context.resources, getPackageInfo(context, localPath)
-                    .packageName)
-            mResources[si] = WeakReference(resources)
-
-
-
-            return resources
+            return SkinResources.getSkinResource(context)
         }
 
+
+        if (mCurrentSkinInfo == si
+                && cr != null) {
+            return cr
+        }
+
+        val softRef = mCacheResources.remove(si)
+        if (softRef != null) {
+            val resources = softRef.get()
+            if (resources != null) {
+                val iterator = mCacheResources.iterator()
+                while (iterator.hasNext()) {
+                    if (iterator.next().value.get() == null) {
+                        iterator.remove()
+                    }
+                }
+
+                if (cr != null && csi != null) {
+                    mCacheResources[csi] = SoftReference(cr)
+                }
+
+                mCurrentResources = resources
+                mCurrentSkinInfo = si
+                return resources
+            }
+        }
+
+        val localPath = si.getLocalPath(context)
+        //获取assetManager
+        var am = AssetManagerUtils.createAssetManager(context, localPath)
+        if (am == null && si.schema == SkinInfo.Schema.ASSETS) {
+            //加载失败尝试重新解压加载
+            File(localPath).delete()
+            si = SkinInfo.obtainByAssets(context, si.path)
+            am = AssetManagerUtils.createAssetManager(context, localPath)
+        }
+
+        if (am == null) {
+            throw RuntimeException("assets parsing failure")
+        }
+
+        val resources = SkinResources.getSkinResource(am, skinInfo, context.resources, getPackageInfo(context, localPath)
+                .packageName)
+
+        if (cr != null && csi != null) {
+            mCacheResources[csi] = SoftReference(cr)
+        }
+
+        mCurrentResources = resources
+        mCurrentSkinInfo = si
+
+        return resources
     }
 
 

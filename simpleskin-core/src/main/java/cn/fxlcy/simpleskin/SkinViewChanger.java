@@ -33,17 +33,6 @@ public interface SkinViewChanger {
             this.mView = view;
         }
 
-        public int getResourceId(String attrName, int defaultVlaue) {
-            for (SkinViewAttr attr : mAttrs) {
-                if (Objects.equals(attrName, attr.attrName)) {
-                    return attr.value;
-                }
-            }
-
-
-            return defaultVlaue;
-        }
-
         public int getResourceId(int attrId, int defaultValue) {
             for (SkinViewAttr attr : mAttrs) {
                 if (attr.attrId == attrId) {

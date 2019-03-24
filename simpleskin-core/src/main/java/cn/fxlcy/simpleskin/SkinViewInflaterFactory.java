@@ -136,69 +136,27 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
             }
         }
 
-        final String[] blackAttr = splitAttrString(a.getString(R.styleable.SkinStyle_skinBlackAttr));
         final String[] tmp = splitAttrString(a.getString(R.styleable.SkinStyle_skinWhiteAttr));
         List<String> whiteArr = null;
         if (tmp != null) {
             whiteArr = new LinkedList<>(Arrays.asList(tmp));
         }
 
+        final String[] blackAttr = splitAttrString(a.getString(R.styleable.SkinStyle_skinBlackAttr));
 
         a.recycle();
 
         final int count = attributeSet.getAttributeCount();
-        LinkedList<SkinViewAttr> skinViewAttrs = null;
+        List<SkinViewAttr> skinViewAttrs = null;
         final boolean hasSkin = SkinManager.getInstance().getCurrentSkin() != null;
 
 
-        for (int i = 0; i < count; i++) {
-            int intValue = attributeSet.getAttributeResourceValue(i, 0);
+        final int[] whiteAttrs = mConfig.getWhiteAttrs();
 
-
-            if (intValue != 0) {
-                final int attrId = attributeSet.getAttributeNameResource(i);
-                final Boolean isAndroidAttr = isAndroidAttr(context, attributeSet, attrId, i);
-
-                if (isAndroidAttr == null) {
-                    break;
-                }
-
-                String attrName = attributeSet.getAttributeName(i);
-
-                if (!isAndroidAttr) {
-                    attrName = CUSTOM_ATTR_PREFIX + attrName;
-                }
-
-                //如果属性是在黑名单属性中break
-                if (Objects.contain(blackAttr, attrName)) {
-                    break;
-                }
-
-                if (whiteArr != null) {
-                    whiteArr.remove(attrName);
-                }
-
-                if (skinViewAttrs == null) {
-                    skinViewAttrs = new LinkedList<>();
-                }
-
-                if (customChanger) {
-                    SkinViewAttr attr = new SkinViewAttr(attrId, intValue, null);
-                    skinViewAttrs.add(attr);
-                } else {
-                    SkinApplicator skinApplicator = getSkinApplicator(skinApplicatorList, attrId);
-
-                    if (skinApplicator != null) {
-                        SkinViewAttr attr = new SkinViewAttr(attrId, intValue, skinApplicator);
-
-                        skinViewAttrs.add(attr);
-
-                        //如果当前有皮肤直接应用皮肤
-                        if (hasSkin) {
-                            attr.apply(view);
-                        }
-                    }
-                }
+        if (whiteAttrs.length > 0) {
+            List<SkinViewAttr> list = resolveWhiteAttrs(context, attributeSet, view, whiteAttrs, customChanger, hasSkin, skinApplicatorList);
+            if (list != null) {
+                skinViewAttrs = list;
             }
         }
 
@@ -251,24 +209,58 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
                 List<SkinViewAttr> list = resolveWhiteAttrs(context, attributeSet, view, whiteAttrIds, customChanger, hasSkin, skinApplicatorList);
                 if (list != null) {
                     if (skinViewAttrs == null) {
-                        skinViewAttrs = new LinkedList<>();
+                        skinViewAttrs = list;
+                    } else {
+                        skinViewAttrs.addAll(list);
                     }
-
-                    skinViewAttrs.addAll(list);
                 }
             }
+        }
 
-            if (mConfig != SkinManager.SkinConfig.EMPTY) {
-                final int[] whiteAttrs = mConfig.getWhiteAttrs();
+        final int[] blackAttrIds = mConfig.getBlackAttrs();
 
-                if (whiteAttrs.length > 0) {
-                    List<SkinViewAttr> list = resolveWhiteAttrs(context, attributeSet, view, whiteAttrs, customChanger, hasSkin, skinApplicatorList);
-                    if (list != null) {
-                        if (skinViewAttrs == null) {
-                            skinViewAttrs = new LinkedList<>();
+        for (int i = 0; i < count; i++) {
+            int intValue = attributeSet.getAttributeResourceValue(i, 0);
+
+            if (intValue != 0) {
+                final int attrId = attributeSet.getAttributeNameResource(i);
+                final Boolean isAndroidAttr = isAndroidAttr(context, attributeSet, attrId, i);
+
+                if (isAndroidAttr == null) {
+                    continue;
+                }
+
+                String attrName = attributeSet.getAttributeName(i);
+
+                if (!isAndroidAttr) {
+                    attrName = CUSTOM_ATTR_PREFIX + attrName;
+                }
+
+                //如果属性是在黑名单属性中continue
+                if (Objects.contain(blackAttr, attrName)
+                        || Objects.contain(blackAttrIds, attrId)) {
+                    continue;
+                }
+
+                if (skinViewAttrs == null) {
+                    skinViewAttrs = new LinkedList<>();
+                }
+
+                if (customChanger) {
+                    SkinViewAttr attr = new SkinViewAttr(attrId, intValue, null);
+                    skinViewAttrs.add(attr);
+                } else {
+                    SkinApplicator skinApplicator = getSkinApplicator(skinApplicatorList, attrId);
+
+                    if (skinApplicator != null) {
+                        SkinViewAttr attr = new SkinViewAttr(attrId, intValue, skinApplicator);
+
+                        skinViewAttrs.add(attr);
+
+                        //如果当前有皮肤直接应用皮肤
+                        if (hasSkin) {
+                            attr.apply(view);
                         }
-
-                        skinViewAttrs.addAll(list);
                     }
                 }
             }

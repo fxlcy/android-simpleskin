@@ -6,7 +6,6 @@ import android.os.Build;
 import android.support.v4.view.ViewCompat;
 import android.util.TypedValue;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -34,26 +33,27 @@ final class DefaultSkinConfigGlobalRegister implements SkinConfigGlobalRegister 
 
         skinManager.registerGlobalSkinApplicator(new ViewType<>(TextView.class, true), new SkinApplicator<TextView>() {
             @Override
-            protected int[] getAttrs() {
-                return new int[]{"textColor", "textSize", "text", "hint", "textColorHint"};
+            protected int[] attrIds() {
+                return new int[]{android.R.attr.textColor, android.R.attr.textSize
+                        , android.R.attr.text, android.R.attr.hint, android.R.attr.textColorHint};
             }
 
             @Override
-            protected void apply(TextView view, SkinResources resources, Resources.Theme theme, String attrName, int value) {
-                switch (attrName) {
-                    case "textColor":
+            protected void apply(TextView view, SkinResources resources, Resources.Theme theme, int attrId, int value) {
+                switch (attrId) {
+                    case android.R.attr.textColor:
                         view.setTextColor(resources.getColorStateList(value, theme));
                         break;
-                    case "textSize":
+                    case android.R.attr.textSize:
                         view.setTextSize(TypedValue.COMPLEX_UNIT_PX, resources.getDimension(value));
                         break;
-                    case "text":
+                    case android.R.attr.text:
                         view.setText(resources.getText(value));
                         break;
-                    case "hint":
+                    case android.R.attr.hint:
                         view.setHint(resources.getText(value));
                         break;
-                    case "textColorHint":
+                    case android.R.attr.textColorHint:
                         view.setHintTextColor(resources.getColorStateList(value, theme));
                         break;
                 }
@@ -62,14 +62,14 @@ final class DefaultSkinConfigGlobalRegister implements SkinConfigGlobalRegister 
 
         skinManager.registerGlobalSkinApplicator(new ViewType<>(ImageView.class, true), new SkinApplicator<ImageView>() {
             @Override
-            protected String[] getAttrs() {
-                return new String[]{"src"};
+            protected int[] attrIds() {
+                return new int[]{android.R.attr.src};
             }
 
             @Override
-            protected void apply(ImageView view, SkinResources resources, Resources.Theme theme, String attrName, int value) {
-                switch (attrName) {
-                    case "src":
+            protected void apply(ImageView view, SkinResources resources, Resources.Theme theme, int attrId, int value) {
+                switch (attrId) {
+                    case android.R.attr.src:
                         view.setImageDrawable(resources.getDrawable(value, theme));
                         break;
                 }
@@ -78,14 +78,14 @@ final class DefaultSkinConfigGlobalRegister implements SkinConfigGlobalRegister 
 
         skinManager.registerGlobalSkinApplicator(new ViewType<>(CompoundButton.class, true), new SkinApplicator<CompoundButton>() {
             @Override
-            protected String[] getAttrs() {
-                return new String[]{"button"};
+            protected int[] attrIds() {
+                return new int[]{android.R.attr.button};
             }
 
             @Override
-            protected void apply(CompoundButton view, SkinResources resources, Resources.Theme theme, String attrName, int value) {
-                switch (attrName) {
-                    case "button":
+            protected void apply(CompoundButton view, SkinResources resources, Resources.Theme theme, int attrId, int value) {
+                switch (attrId) {
+                    case android.R.attr.button:
                         view.setButtonDrawable(resources.getDrawable(value, theme));
                         break;
                 }

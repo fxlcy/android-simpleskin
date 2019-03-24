@@ -353,11 +353,7 @@ public class SkinManager {
 
 
     public SkinResources getResources(Context context) {
-        if (mCurrentSkin == null) {
-            return SkinResources.getSkinResource(context);
-        } else {
-            return ResourcesManager.getInstance().getResources(context, mCurrentSkin);
-        }
+        return ResourcesManager.getInstance().getResources(context, mCurrentSkin);
     }
 
 
@@ -459,7 +455,7 @@ public class SkinManager {
     }
 
 
-    public final static class SkinConfig {
+    public static class SkinConfig {
 
         public static SkinConfig obtain(Activity activity, OnSkinConfigInitializer initializer) {
             SkinConfig skinConfig = sSkinConfigCache.get(activity.getClass());
@@ -524,10 +520,20 @@ public class SkinManager {
         }
 
 
-        final static SkinConfig EMPTY = new SkinConfig().newImmutable();
+        final static SkinConfig EMPTY = new SkinConfig() {
+            @Override
+            int[] getWhiteAttrs() {
+                return SkinManager.getInstance().mGlobalConfig.getWhiteAttrs();
+            }
+
+            @Override
+            int[] getBlackAttrs() {
+                return SkinManager.getInstance().mGlobalConfig.getBlackAttrs();
+            }
+        }.newImmutable();
 
 
-        final int[] getWhiteAttrs() {
+        int[] getWhiteAttrs() {
             final SkinConfig globalConfig = SkinManager.getInstance().mGlobalConfig;
 
             if (!globalConfig.mImmutable || !mImmutable) {
@@ -561,7 +567,7 @@ public class SkinManager {
         }
 
 
-        final int[] getBlackAttrs() {
+        int[] getBlackAttrs() {
             final SkinConfig globalConfig = SkinManager.getInstance().mGlobalConfig;
 
             if (!globalConfig.mImmutable || !mImmutable) {

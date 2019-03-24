@@ -3,6 +3,7 @@ package cn.fxlcy.simpleskin.test;
 import android.app.Activity;
 import android.content.Context;
 import android.content.ContextWrapper;
+import android.content.res.Resources;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.AppCompatActivity;
@@ -12,15 +13,11 @@ import android.view.View;
 
 import com.huazhen.library.simplelayout.inflater.BaseViewInflater;
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-
 import cn.fxlcy.simpleskin.R;
-import cn.fxlcy.simpleskin.SkinInfo;
+import cn.fxlcy.simpleskin.SkinApplicator;
 import cn.fxlcy.simpleskin.SkinManager;
+import cn.fxlcy.simpleskin.SkinResources;
+import cn.fxlcy.simpleskin.ViewType;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -58,6 +55,37 @@ public class MainActivity extends AppCompatActivity {
                 , new SkinManager.OnSkinConfigInitializer() {
                     @Override
                     public SkinManager.SkinConfig init(SkinManager.SkinConfig skinConfig) {
+                        skinConfig.registerSkinApplicator(new ViewType<View>(View.class, true), new SkinApplicator<View>() {
+                            @Override
+                            protected int[] attrIds() {
+                                return new int[]{android.R.attr.layout_width, android.R.attr.layout_height};
+                            }
+
+                            @Override
+                            protected void apply(final View view, final SkinResources resources, Resources.Theme theme, int attrId, final int value) {
+                                switch (attrId) {
+                                    case android.R.attr.layout_width:
+                                        view.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                view.getLayoutParams().width = resources.getDimensionPixelSize(value);
+                                                view.requestLayout();
+                                            }
+                                        });
+                                        break;
+                                    case android.R.attr.layout_height:
+                                        view.post(new Runnable() {
+                                            @Override
+                                            public void run() {
+                                                view.getLayoutParams().width = resources.getDimensionPixelSize(value);
+                                                view.requestLayout();
+                                            }
+                                        });
+                                        break;
+                                }
+                            }
+                        });
+
                         return skinConfig;
                     }
                 });
@@ -72,15 +100,16 @@ public class MainActivity extends AppCompatActivity {
         Log.i(TAG, String.valueOf(System.currentTimeMillis()));
 
 
-
     }
 
 
     public void onClick(View view) {
         if (view.getId() == R.id.btn_change_skin) {
-            SkinManager.getInstance().switchSkinByAssets(this,"skin/skin2.skin",null);
+            SkinManager.getInstance().switchSkinByAssets(this, "skin/skin1.skin", null);
         } else if (view.getId() == R.id.btn_restore_skin) {
             SkinManager.getInstance().restoreSkin(this);
+        } else if (view.getId() == R.id.btn_change_skin2) {
+            SkinManager.getInstance().switchSkinByAssets(this, "skin/skin2.skin", null);
         }
     }
 }
