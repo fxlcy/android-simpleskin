@@ -1,1 +1,1 @@
-include ':app', ':simpleskin-core', ':skin1'
+include ':app', ':simpleskin-core', ':skin1',':hideapi',':hideapiuse'

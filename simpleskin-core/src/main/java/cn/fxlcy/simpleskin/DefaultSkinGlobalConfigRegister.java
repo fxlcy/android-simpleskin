@@ -10,7 +10,7 @@ import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-final class DefaultSkinConfigGlobalRegister implements SkinConfigGlobalRegister {
+public class DefaultSkinGlobalConfigRegister implements SkinGlobalConfigRegister {
 
     @Override
     public void register(SkinManager skinManager) {

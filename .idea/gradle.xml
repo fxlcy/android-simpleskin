@@ -9,6 +9,8 @@
           <set>
             <option value="$PROJECT_DIR$" />
             <option value="$PROJECT_DIR$/app" />
+            <option value="$PROJECT_DIR$/hideapi" />
+            <option value="$PROJECT_DIR$/hideapiuse" />
             <option value="$PROJECT_DIR$/simpleskin-core" />
             <option value="$PROJECT_DIR$/skin1" />
           </set>

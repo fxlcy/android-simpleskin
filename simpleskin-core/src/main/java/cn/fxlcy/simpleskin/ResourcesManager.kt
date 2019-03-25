@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageInfo
 import android.content.pm.PackageManager
 import cn.fxlcy.lib.util.AssetManagerUtils
+import cn.fxlcy.simpleskin.util.CollUtils
 import java.io.File
 import java.lang.ref.SoftReference
 
@@ -14,7 +15,7 @@ class ResourcesManager private constructor() {
     private var mCurrentResources: SkinResources? = null
     private var mCurrentSkinInfo: SkinInfo? = null
 
-    private val mCacheResources = HashMap<SkinInfo, SoftReference<SkinResources>>()
+    private val mCacheResources = CollUtils.newMap<SkinInfo, SoftReference<SkinResources>>()
 
     @Synchronized
     fun getResources(context: Context, skinInfo: SkinInfo?): SkinResources {
@@ -73,8 +74,7 @@ class ResourcesManager private constructor() {
             throw RuntimeException("assets parsing failure")
         }
 
-        val resources = SkinResources.getSkinResource(am, skinInfo, context.resources, getPackageInfo(context, localPath)
-                .packageName)
+        val resources = SkinResources.getSkinResource(am, skinInfo, context.resources, getPackageInfo(context, localPath))
 
         if (cr != null && csi != null) {
             mCacheResources[csi] = SoftReference(cr)
@@ -89,7 +89,7 @@ class ResourcesManager private constructor() {
 
     private fun getPackageInfo(context: Context, path: String): PackageInfo {
         val pm = context.packageManager
-        return pm.getPackageArchiveInfo(path, PackageManager.GET_ACTIVITIES)
+        return pm.getPackageArchiveInfo(path, PackageManager.GET_META_DATA)
                 ?: throw IllegalArgumentException(path + "皮肤文件加载失败")
     }
 

@@ -4,6 +4,8 @@ import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
+import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.os.Message;
@@ -12,6 +14,8 @@ import android.view.View;
 import android.view.Window;
 
 import com.huazhen.library.simplelayout.inflater.BaseViewInflater;
+
+import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,14 +26,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.ServiceLoader;
 import java.util.Set;
+import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import cn.fxlcy.simpleskin.config.Constants;
 import cn.fxlcy.simpleskin.util.CollUtils;
 import cn.fxlcy.simpleskin.util.Objects;
+import dalvik.system.DexFile;
+import dalvik.system.DexFileCompat;
 
-public class SkinManager {
+public final class SkinManager {
 
     private final static String TAG = "SkinManager";
 
@@ -51,12 +58,22 @@ public class SkinManager {
     private ExecutorService mThreadPool;
 
 
+    private boolean mInit = false;
+
+    private static final Object EMPTY = new Object();
+
+    private final WeakHashMap<Activity, Object> mActivitys = new WeakHashMap<>();
+
+    /**
+     * restoreSkin是否需要recreate activity
+     */
+    private boolean mNeedRecreate = false;
+
+
     public SkinInfo getCurrentSkin() {
         return mCurrentSkin;
     }
 
-
-    private boolean mInit = false;
 
     /**
      * 是否成功设置
@@ -82,20 +99,6 @@ public class SkinManager {
     }
 
     private SkinManager() {
-        //通过ServiceLoader读取可能存在的皮肤全局配置注册器
-        final Iterable<SkinConfigGlobalRegister> registers = ServiceLoader.load(SkinConfigGlobalRegister.class);
-        if (registers != null) {
-            Iterator<SkinConfigGlobalRegister> iterator = registers.iterator();
-            if (iterator.hasNext()) {
-                while (iterator.hasNext()) {
-                    iterator.next().register(this);
-                }
-
-                return;
-            }
-        }
-
-        new DefaultSkinConfigGlobalRegister().register(this);
     }
 
 
@@ -191,7 +194,7 @@ public class SkinManager {
     }
 
 
-    List<SkinApplicator<? extends View>> getSkinApplicators(Class<? extends View> type, SkinViewInflaterFactory factory) {
+    final List<SkinApplicator<? extends View>> getSkinApplicators(Class<? extends View> type, SkinViewInflaterFactory factory) {
         SkinConfig config = factory.mConfig;
 
         List<SkinApplicator<? extends View>> skinApplicators;
@@ -247,6 +250,8 @@ public class SkinManager {
             throw new RuntimeException("already initialized");
         }
 
+        registerConfig();
+
         SharedPreferences sp = application.getSharedPreferences(Constants.SP_NAME, Context.MODE_PRIVATE);
         String schema = sp
                 .getString(Constants.SP_SKIN_SCHEMA, null);
@@ -276,7 +281,6 @@ public class SkinManager {
 
 
         mInit = true;
-        mGlobalConfig.newImmutable();
 
         mCurrentSkin = skinInfo;
 
@@ -292,7 +296,7 @@ public class SkinManager {
         checkEnv();
 
         if (setCurrentSkin(context, null)) {
-            SkinViewManager.getInstance().applySkin();
+            applySkin();
         }
     }
 
@@ -321,7 +325,6 @@ public class SkinManager {
         }
     }
 
-
     public void installViewFactory(Activity activity) {
         installViewFactory(activity, null);
     }
@@ -349,13 +352,42 @@ public class SkinManager {
             SkinViewManager.getInstance().loadSkinThemeAttrs(activity, factory2);
         }
 
+
+        mActivitys.put(activity, EMPTY);
     }
 
-
+    @NotNull
     public SkinResources getResources(Context context) {
         return ResourcesManager.getInstance().getResources(context, mCurrentSkin);
     }
 
+
+    private void registerConfig() {
+        //通过ServiceLoader读取可能存在的皮肤全局配置注册器
+        final Iterable<SkinGlobalConfigRegister> registers = ServiceLoader.load(SkinGlobalConfigRegister.class);
+        Iterator<SkinGlobalConfigRegister> iterator = registers.iterator();
+        if (iterator.hasNext()) {
+            while (iterator.hasNext()) {
+                iterator.next().register(this);
+            }
+
+            return;
+        }
+
+        new DefaultSkinGlobalConfigRegister().register(this);
+
+        mGlobalConfig.newImmutable();
+    }
+
+    private void applySkin() {
+        if (mNeedRecreate) {
+            recreateActivitys();
+
+            mNeedRecreate = false;
+        } else {
+            SkinViewManager.getInstance().applySkin();
+        }
+    }
 
     private void switchSkinInner(final Context context, final SkinInfo skinInfo, final OnSkinChangedListener listener, boolean init) {
         if (init || setCurrentSkin(context, skinInfo)) {
@@ -363,9 +395,13 @@ public class SkinManager {
 
             if (listener == null) {
                 try {
-                    ResourcesManager.getInstance().getResources(context, skinInfo);
-                    SkinViewManager.getInstance().applySkin();
-                    triggerListener(null, true, null);
+                    if (resolveMateData(context, ResourcesManager.getInstance().getResources(context, skinInfo))) {
+                        triggerListener(null, true, null);
+                        recreateActivitys();
+                    } else {
+                        applySkin();
+                        triggerListener(null, true, null);
+                    }
                 } catch (Throwable e) {
                     triggerListener(null, false, e);
                 }
@@ -379,9 +415,12 @@ public class SkinManager {
                     @Override
                     public boolean handleMessage(Message msg) {
                         if (msg.what == 0) {
-                            SkinViewManager.getInstance().applySkin();
+                            applySkin();
                             triggerListener(listener, true, null);
                         } else if (msg.what == 1) {
+                            triggerListener(listener, true, null);
+                            recreateActivitys();
+                        } else if (msg.what == 2) {
                             triggerListener(listener, false, (Throwable) msg.obj);
                         }
                         return false;
@@ -392,10 +431,15 @@ public class SkinManager {
                     @Override
                     public void run() {
                         try {
-                            ResourcesManager.getInstance().getResources(context, skinInfo);
-                            handler.sendEmptyMessage(0);
+                            if (resolveMateData(context, ResourcesManager.getInstance().getResources(context, skinInfo))) {
+                                handler.sendEmptyMessage(1);
+                            } else {
+                                handler.sendEmptyMessage(0);
+                            }
+
                         } catch (Throwable e) {
                             Message message = Message.obtain();
+                            message.what = 2;
                             message.obj = e;
                             handler.sendMessage(message);
                         }
@@ -403,6 +447,52 @@ public class SkinManager {
                 });
             }
         }
+    }
+
+    private void recreateActivitys() {
+        Set<Activity> activities = mActivitys.keySet();
+        for (Activity activity : activities) {
+
+            if (activity != null && !activity.isFinishing() && (Build.VERSION.SDK_INT < Build.VERSION_CODES.JELLY_BEAN_MR1 || !activity.isDestroyed())) {
+                try {
+                    activity.recreate();
+                } catch (Throwable ignored) {
+                }
+            }
+
+        }
+    }
+
+    private boolean resolveMateData(Context context, SkinResources resources) {
+        Bundle bundle = resources.mApplicationInfo.metaData;
+        if (bundle != null) {
+            String registerClass = bundle.getString(Constants.METE_DATA_KEY_GLOBAL_CONFIG_REGISTER);
+            DexFile dexFile = DexFileCompat.loadDexFileByApkFile(context, resources.getSkinInfo().getLocalPath(context));
+            boolean reset = false;
+
+            try {
+                Class clazz = dexFile.loadClass(registerClass, new FixClassLoader(getClass().getClassLoader(), dexFile));
+                SkinGlobalConfigRegister register = (SkinGlobalConfigRegister) clazz.newInstance();
+
+                //重置所有skinConfig
+                SkinConfig.resetAll();
+                reset = true;
+                register.register(this);
+                mGlobalConfig.newImmutable();
+
+                mNeedRecreate = true;
+                return true;
+            } catch (Throwable ignored) {
+                if (reset) {
+                    registerConfig();
+                }
+            }
+        }
+
+
+        mNeedRecreate = false;
+
+        return false;
     }
 
 
@@ -513,6 +603,29 @@ public class SkinManager {
         }
 
 
+        private static void resetAll() {
+            SkinManager.getInstance().mGlobalConfig.reset();
+
+            sSkinConfigCache.clear();
+        }
+
+        private void reset() {
+            mSkinApplicatorMapCache = null;
+            mSkinThemeAttrsCache = null;
+            mSkinApplicator.clear();
+            mSkinThemeApplicator.clear();
+
+            mSkinWhiteAttrs.clear();
+            mSkinBlackAttrs.clear();
+            mSkinBlackAttrArr = null;
+            mSkinWhiteAttrArr = null;
+
+            mImmutable = false;
+
+            mDefaultUse = true;
+        }
+
+
         //置为不可变的
         final SkinConfig newImmutable() {
             mImmutable = true;
@@ -537,7 +650,7 @@ public class SkinManager {
             final SkinConfig globalConfig = SkinManager.getInstance().mGlobalConfig;
 
             if (!globalConfig.mImmutable || !mImmutable) {
-                throw new RuntimeException("not initialized");
+                throw new UnsupportedOperationException();
             }
 
             if (mSkinWhiteAttrArr == null) {
@@ -571,7 +684,7 @@ public class SkinManager {
             final SkinConfig globalConfig = SkinManager.getInstance().mGlobalConfig;
 
             if (!globalConfig.mImmutable || !mImmutable) {
-                throw new RuntimeException("not initialized");
+                throw new UnsupportedOperationException();
             }
 
             if (mSkinBlackAttrArr == null) {

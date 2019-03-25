@@ -13,11 +13,27 @@ import android.view.View;
 
 import com.huazhen.library.simplelayout.inflater.BaseViewInflater;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.nio.MappedByteBuffer;
+import java.util.ArrayList;
+import java.util.Enumeration;
+import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipFile;
+import java.util.zip.ZipInputStream;
+import java.util.zip.ZipOutputStream;
+
 import cn.fxlcy.simpleskin.R;
 import cn.fxlcy.simpleskin.SkinApplicator;
 import cn.fxlcy.simpleskin.SkinManager;
 import cn.fxlcy.simpleskin.SkinResources;
 import cn.fxlcy.simpleskin.ViewType;
+import dalvik.system.DexFile;
+import dalvik.system.DexFileCompat;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -99,7 +115,64 @@ public class MainActivity extends AppCompatActivity {
 
         Log.i(TAG, String.valueOf(System.currentTimeMillis()));
 
+      /*  ZipInputStream zis = null;
+        InputStream is = null;
 
+        List<DexFile> dexFileList = new ArrayList<>();
+
+        try {
+            is = getAssets().open("fix/fix.dex");
+            zis = new ZipInputStream(is);
+
+            ZipEntry zipEntry;
+            byte[] bytes = new byte[1024 * 1000 * 10];
+            int readLength;
+
+            while ((zipEntry = zis.getNextEntry()) != null) {
+                final String name = zipEntry.getName();
+                if (name.startsWith("classes") && name.endsWith(".dex")) {
+                    ByteArrayOutputStream byteArrayOutputStream
+                            = new ByteArrayOutputStream();
+
+                    while ((readLength = zis.read(bytes, 0, bytes.length)) != -1) {
+                        byteArrayOutputStream.write(bytes, 0, readLength);
+                    }
+
+                    byteArrayOutputStream.close();
+
+                    DexFile dexFile = DexFileCompat.loadDexFile(ByteBuffer.wrap(byteArrayOutputStream
+                            .toByteArray()));
+
+                    dexFileList.add(dexFile);
+                }
+            }
+        } catch (Throwable e) {
+            e.printStackTrace();
+        } finally {
+            if (zis != null) {
+                try {
+                    zis.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            if (is != null) {
+                try {
+                    is.close();
+                } catch (IOException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
+
+
+        for (DexFile dexFile : dexFileList) {
+            Class clazz = dexFile.loadClass("cn.fxlcy.fix.TestFix", getClassLoader());
+
+
+            Log.i(TAG,clazz.getName());
+        }*/
     }
 
 
@@ -109,7 +182,7 @@ public class MainActivity extends AppCompatActivity {
         } else if (view.getId() == R.id.btn_restore_skin) {
             SkinManager.getInstance().restoreSkin(this);
         } else if (view.getId() == R.id.btn_change_skin2) {
-            SkinManager.getInstance().switchSkinByAssets(this, "skin/skin2.skin", null);
+            SkinManager.getInstance().switchSkinByAssets(this, "skin/skin3.skin", null);
         }
     }
 }

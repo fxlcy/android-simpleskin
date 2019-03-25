@@ -1,6 +1,8 @@
 package cn.fxlcy.simpleskin;
 
 import android.content.Context;
+import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.res.AssetManager;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -16,6 +18,8 @@ import java.util.Locale;
 public class SkinResources {
     private String mPackageName;
 
+    protected ApplicationInfo mApplicationInfo;
+
     private Configuration mConfiguration;
     private DisplayMetrics mDisplayMetrics;
 
@@ -29,19 +33,20 @@ public class SkinResources {
 
 
     public static SkinResources getSkinResource(Context context) {
-        return new SkinResources(context.getResources(), context.getPackageName());
+        return new SkinResources(context.getResources(), context.getApplicationInfo());
     }
 
 
-    public static SkinResources getSkinResource(AssetManager assetManager, SkinInfo skinInfo, Resources superResource, String packageName) {
+    public static SkinResources getSkinResource(AssetManager assetManager, SkinInfo skinInfo, Resources superResource, PackageInfo packageName) {
         return new DefaultSkinResources(assetManager, skinInfo, superResource, packageName);
     }
 
-    private SkinResources(Resources resources, String packageName) {
+    private SkinResources(Resources resources, ApplicationInfo applicationInfo) {
         mConfiguration = resources.getConfiguration();
         mDisplayMetrics = resources.getDisplayMetrics();
 
-        this.mPackageName = packageName;
+        mApplicationInfo = applicationInfo;
+        this.mPackageName = applicationInfo.packageName;
         mResources = resources;
     }
 
@@ -255,8 +260,9 @@ public class SkinResources {
 
         private SkinInfo mSkinInfo;
 
-        private DefaultSkinResources(AssetManager assetManager, SkinInfo skinInfo, Resources superResources, String packageName) {
-            super(new Resources(assetManager, superResources.getDisplayMetrics(), superResources.getConfiguration()), packageName);
+
+        private DefaultSkinResources(AssetManager assetManager, SkinInfo skinInfo, Resources superResources, PackageInfo packageName) {
+            super(new Resources(assetManager, superResources.getDisplayMetrics(), superResources.getConfiguration()), packageName.applicationInfo);
             mSuperResources = superResources;
             mSkinInfo = skinInfo;
         }

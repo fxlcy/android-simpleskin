@@ -1,5 +1,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="cn.fxlcy.simpleskin">
 
-    <application/>
+    <application>
+  <!--      <meta-data
+            android:name="skin_config_register"
+            android:value="cn.fxlcy.fix.SkinGlobalRegister" />-->
+    </application>
 </manifest>

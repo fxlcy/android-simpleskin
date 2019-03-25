@@ -5,8 +5,6 @@ import android.view.View;
 
 import java.util.List;
 
-import cn.fxlcy.simpleskin.util.Objects;
-
 /**
  * 如果想皮肤改变的逻辑都自己控制，view实现这个接口
  */

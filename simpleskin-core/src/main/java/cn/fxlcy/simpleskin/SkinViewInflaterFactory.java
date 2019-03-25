@@ -58,56 +58,6 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
     }
 
 
-    private SkinApplicator<? extends View> getSkinApplicator(List<SkinApplicator<? extends View>> skinApplicatorList, int attrId) {
-        for (SkinApplicator<? extends View> skinApplicator : skinApplicatorList) {
-            int[] attrs = skinApplicator.getAttrIds();
-
-            for (int a : attrs) {
-                if (attrId == a) {
-                    return skinApplicator;
-                }
-            }
-        }
-
-        return null;
-    }
-
-
-    private static String[] splitAttrString(String str) {
-        if (TextUtils.isEmpty(str)) {
-            return null;
-        } else {
-            return str.split(",");
-        }
-    }
-
-    //判断是否是android系统自带的属性 如果返回null代表是style 之类的无namespace的属性
-    private static Boolean isAndroidAttr(Context context, AttributeSet attributeSet, int attrId, int index) {
-
-        //过滤掉skinWhiteAttr和skinBlackAttr
-        if (attrId == 0 || android.R.attr.id == attrId || R.attr.skinWhiteAttr == attrId ||
-                R.attr.skinBlackAttr == attrId || R.attr.skin == attrId) {
-            return null;
-        }
-
-
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
-            final String name = attributeSet.getAttributeNamespace(index);
-
-            if (ANDROID_NAMESPACE.equals(name)) {
-                return true;
-            } else if (APP_NAMESPACE.equals(name)) {
-                return false;
-            } else {
-                return null;
-            }
-        } else {
-            final String packageName = context.getResources().getResourcePackageName(attrId);
-
-            return SYSTEM_PACKAGE.equals(packageName);
-        }
-    }
-
     @Override
     public View onCreateView(View parent, View view, String name, Context context, AttributeSet attributeSet) {
         final TypedArray a = context.obtainStyledAttributes(attributeSet, R.styleable.SkinStyle);
@@ -147,24 +97,14 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
         a.recycle();
 
         final int count = attributeSet.getAttributeCount();
-        List<SkinViewAttr> skinViewAttrs = null;
+        List<SkinViewAttr> skinViewAttrs;
         final boolean hasSkin = SkinManager.getInstance().getCurrentSkin() != null;
 
-
-        final int[] whiteAttrs = mConfig.getWhiteAttrs();
-
-        if (whiteAttrs.length > 0) {
-            List<SkinViewAttr> list = resolveWhiteAttrs(context, attributeSet, view, whiteAttrs, customChanger, hasSkin, skinApplicatorList);
-            if (list != null) {
-                skinViewAttrs = list;
-            }
-        }
-
+        int[] whiteAttrIds = null;
 
         if (whiteArr != null && whiteArr.size() > 0) {
             final int size = whiteArr.size();
             SparseArray<String> whiteArrMap = null;
-            int[] whiteAttrIds = null;
 
             int whiteIndex = 0;
 
@@ -202,20 +142,14 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
                 if (whiteIndex != size) {
                     whiteAttrIds = Arrays.copyOf(whiteAttrIds, whiteIndex);
                 }
-
-                //attr从小到大排序(必须)
-                Arrays.sort(whiteAttrIds);
-
-                List<SkinViewAttr> list = resolveWhiteAttrs(context, attributeSet, view, whiteAttrIds, customChanger, hasSkin, skinApplicatorList);
-                if (list != null) {
-                    if (skinViewAttrs == null) {
-                        skinViewAttrs = list;
-                    } else {
-                        skinViewAttrs.addAll(list);
-                    }
-                }
             }
         }
+
+
+        //合并两个数组并去重
+        whiteAttrIds = mergeIntArray(mConfig.getWhiteAttrs(), whiteAttrIds);
+
+        skinViewAttrs = resolveWhiteAttrs(context, attributeSet, view, whiteAttrIds, customChanger, hasSkin, skinApplicatorList);
 
         final int[] blackAttrIds = mConfig.getBlackAttrs();
 
@@ -224,6 +158,12 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
 
             if (intValue != 0) {
                 final int attrId = attributeSet.getAttributeNameResource(i);
+
+                //如果属性是在黑名单或白名单属性中continue
+                if (Objects.contain(blackAttrIds, attrId) || Objects.contain(whiteAttrIds, attrId)) {
+                    continue;
+                }
+
                 final Boolean isAndroidAttr = isAndroidAttr(context, attributeSet, attrId, i);
 
                 if (isAndroidAttr == null) {
@@ -237,8 +177,7 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
                 }
 
                 //如果属性是在黑名单属性中continue
-                if (Objects.contain(blackAttr, attrName)
-                        || Objects.contain(blackAttrIds, attrId)) {
+                if (Objects.contain(blackAttr, attrName)) {
                     continue;
                 }
 
@@ -283,8 +222,51 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
     }
 
 
+    private static int[] mergeIntArray(int[] arr1, int[] arr2) {
+        if (arr1 == null || arr1.length == 0) {
+            return arr1;
+        } else if (arr2 == null || arr2.length == 0) {
+            Arrays.sort(arr2);
+            return arr1;
+        } else {
+            int arr1Len = arr1.length;
+            int arr2Len = arr2.length;
+            int[] newArr = Arrays.copyOf(arr1, arr1Len + arr2Len);
+
+            int off = 0;
+
+            for (int value : arr2) {
+                if (!Objects.contain(arr1, value)) {
+                    newArr[arr1Len + off] = value;
+                    off++;
+                }
+            }
+
+            if (off == 0) {
+                newArr = arr1;
+            } else if (off != arr2Len) {
+                newArr = Arrays.copyOf(newArr, arr1Len + off);
+            }
+
+            if (off != 0) {
+                Arrays.sort(newArr);
+            }
+
+            return newArr;
+        }
+    }
+
+    private static String[] splitAttrString(String str) {
+        if (TextUtils.isEmpty(str)) {
+            return null;
+        } else {
+            return str.split(",");
+        }
+    }
+
+
     //解析白名单属性
-    private List<SkinViewAttr> resolveWhiteAttrs(Context context, AttributeSet attributeSet, View view, int[] whiteAttrIds, boolean customChanger
+    private static List<SkinViewAttr> resolveWhiteAttrs(Context context, AttributeSet attributeSet, View view, int[] whiteAttrIds, boolean customChanger
             , boolean hasSkin, List<SkinApplicator<? extends View>> skinApplicatorList) {
         final TypedArray ta = context.obtainStyledAttributes(attributeSet, whiteAttrIds);
 
@@ -327,5 +309,50 @@ final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
         ta.recycle();
 
         return skinViewAttrs;
+    }
+
+
+
+    private static SkinApplicator<? extends View> getSkinApplicator(List<SkinApplicator<? extends View>> skinApplicatorList, int attrId) {
+        for (SkinApplicator<? extends View> skinApplicator : skinApplicatorList) {
+            int[] attrs = skinApplicator.getAttrIds();
+
+            for (int a : attrs) {
+                if (attrId == a) {
+                    return skinApplicator;
+                }
+            }
+        }
+
+        return null;
+    }
+
+
+
+    //判断是否是android系统自带的属性 如果返回null代表是style 之类的无namespace的属性
+    private static Boolean isAndroidAttr(Context context, AttributeSet attributeSet, int attrId, int index) {
+
+        //过滤掉skinWhiteAttr和skinBlackAttr
+        if (attrId == 0 || android.R.attr.id == attrId || R.attr.skinWhiteAttr == attrId ||
+                R.attr.skinBlackAttr == attrId || R.attr.skin == attrId) {
+            return null;
+        }
+
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.P) {
+            final String name = attributeSet.getAttributeNamespace(index);
+
+            if (ANDROID_NAMESPACE.equals(name)) {
+                return true;
+            } else if (APP_NAMESPACE.equals(name)) {
+                return false;
+            } else {
+                return null;
+            }
+        } else {
+            final String packageName = context.getResources().getResourcePackageName(attrId);
+
+            return SYSTEM_PACKAGE.equals(packageName);
+        }
     }
 }
