@@ -13,27 +13,11 @@ import android.view.View;
 
 import com.huazhen.library.simplelayout.inflater.BaseViewInflater;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.nio.MappedByteBuffer;
-import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipFile;
-import java.util.zip.ZipInputStream;
-import java.util.zip.ZipOutputStream;
-
 import cn.fxlcy.simpleskin.R;
 import cn.fxlcy.simpleskin.SkinApplicator;
 import cn.fxlcy.simpleskin.SkinManager;
 import cn.fxlcy.simpleskin.SkinResources;
 import cn.fxlcy.simpleskin.ViewType;
-import dalvik.system.DexFile;
-import dalvik.system.DexFileCompat;
 
 
 public class MainActivity extends AppCompatActivity {

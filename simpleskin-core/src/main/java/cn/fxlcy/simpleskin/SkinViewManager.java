@@ -20,9 +20,9 @@ import cn.fxlcy.simpleskin.util.ContextUtils;
 public final class SkinViewManager {
 
 
-    private final WeakHashMap<Context, SkinViewWeakList> mSkinViews = new WeakHashMap<>();
+    private final WeakHashMap<Activity, SkinViewWeakList> mSkinViews = new WeakHashMap<>();
 
-    private final WeakHashMap<Context, List<SkinThemeAttr>> mSkinThemeAttrs = new WeakHashMap<>();
+    private final WeakHashMap<Activity, List<SkinThemeAttr>> mSkinThemeAttrs = new WeakHashMap<>();
 
     private final static String TAG = "SkinViewManager";
 
@@ -47,11 +47,11 @@ public final class SkinViewManager {
 
 
     public void applySkin() {
-        Set<Map.Entry<Context, SkinViewWeakList>> entries = mSkinViews.entrySet();
+        Set<Map.Entry<Activity, SkinViewWeakList>> entries = mSkinViews.entrySet();
 
         SkinResources resources = null;
 
-        for (Map.Entry<Context, SkinViewWeakList> entry : entries) {
+        for (Map.Entry<Activity, SkinViewWeakList> entry : entries) {
 
             final SkinViewWeakList skinViews = entry.getValue();
 
@@ -82,9 +82,9 @@ public final class SkinViewManager {
         }
 
         //应用主题
-        final Set<Map.Entry<Context, List<SkinThemeAttr>>> entrySet = mSkinThemeAttrs.entrySet();
+        final Set<Map.Entry<Activity, List<SkinThemeAttr>>> entrySet = mSkinThemeAttrs.entrySet();
 
-        for (Map.Entry<Context, List<SkinThemeAttr>> entry : entrySet) {
+        for (Map.Entry<Activity, List<SkinThemeAttr>> entry : entrySet) {
             final Activity activity = ContextUtils.getActivityByContext(entry.getKey());
             final List<SkinThemeAttr> attrs = entry.getValue();
             if (activity != null) {
@@ -95,6 +95,11 @@ public final class SkinViewManager {
         }
     }
 
+
+    void destroy(Activity activity) {
+        mSkinViews.remove(activity);
+        mSkinThemeAttrs.remove(activity);
+    }
 
     boolean addSkinView(View view, List<SkinViewAttr> attrs) {
         Context context = view.getContext();
@@ -153,7 +158,7 @@ public final class SkinViewManager {
             a.recycle();
 
             if (skinThemeAttrs != null) {
-                mSkinThemeAttrs.put(context, skinThemeAttrs);
+                mSkinThemeAttrs.put(activity, skinThemeAttrs);
             }
         }
     }

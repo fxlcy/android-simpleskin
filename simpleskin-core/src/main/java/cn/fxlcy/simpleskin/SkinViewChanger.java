@@ -3,6 +3,7 @@ package cn.fxlcy.simpleskin;
 import android.content.res.Resources;
 import android.view.View;
 
+import java.lang.ref.WeakReference;
 import java.util.List;
 
 /**
@@ -24,11 +25,11 @@ public interface SkinViewChanger {
 
     final class Helper {
         private List<SkinViewAttr> mAttrs;
-        private View mView;
+        private WeakReference<View> mView;
 
         Helper(View view, List<SkinViewAttr> attr) {
             this.mAttrs = attr;
-            this.mView = view;
+            this.mView = new WeakReference<>(view);
         }
 
         public int getResourceId(int attrId, int defaultValue) {

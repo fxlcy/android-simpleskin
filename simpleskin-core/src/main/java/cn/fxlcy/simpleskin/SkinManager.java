@@ -33,6 +33,7 @@ import java.util.concurrent.Executors;
 import cn.fxlcy.simpleskin.config.Constants;
 import cn.fxlcy.simpleskin.util.CollUtils;
 import cn.fxlcy.simpleskin.util.Objects;
+import cn.fxlcy.simpleskin.util.SimpleActivityLifecycleCallbacks;
 import dalvik.system.DexFile;
 import dalvik.system.DexFileCompat;
 
@@ -250,6 +251,14 @@ public final class SkinManager {
             throw new RuntimeException("already initialized");
         }
 
+        application.registerActivityLifecycleCallbacks(new SimpleActivityLifecycleCallbacks() {
+            @Override
+            public void onActivityDestroyed(Activity activity) {
+                mActivitys.remove(activity);
+                SkinViewManager.getInstance().destroy(activity);
+            }
+        });
+
         registerConfig();
 
         SharedPreferences sp = application.getSharedPreferences(Constants.SP_NAME, Context.MODE_PRIVATE);
@@ -296,7 +305,7 @@ public final class SkinManager {
         checkEnv();
 
         if (setCurrentSkin(context, null)) {
-            applySkin();
+            applySkin(mNeedRecreate);
         }
     }
 
@@ -379,10 +388,11 @@ public final class SkinManager {
         mGlobalConfig.newImmutable();
     }
 
-    private void applySkin() {
-        if (mNeedRecreate) {
+    private void applySkin(boolean needRecreate) {
+        if (needRecreate) {
+            SkinConfig.resetAll();
+            registerConfig();
             recreateActivitys();
-
             mNeedRecreate = false;
         } else {
             SkinViewManager.getInstance().applySkin();
@@ -395,11 +405,12 @@ public final class SkinManager {
 
             if (listener == null) {
                 try {
+                    final boolean needRecreate = mNeedRecreate;
                     if (resolveMateData(context, ResourcesManager.getInstance().getResources(context, skinInfo))) {
                         triggerListener(null, true, null);
                         recreateActivitys();
                     } else {
-                        applySkin();
+                        applySkin(needRecreate);
                         triggerListener(null, true, null);
                     }
                 } catch (Throwable e) {
@@ -415,7 +426,7 @@ public final class SkinManager {
                     @Override
                     public boolean handleMessage(Message msg) {
                         if (msg.what == 0) {
-                            applySkin();
+                            applySkin((boolean) msg.obj);
                             triggerListener(listener, true, null);
                         } else if (msg.what == 1) {
                             triggerListener(listener, true, null);
@@ -431,17 +442,19 @@ public final class SkinManager {
                     @Override
                     public void run() {
                         try {
+                            final boolean needRecreate = mNeedRecreate;
                             if (resolveMateData(context, ResourcesManager.getInstance().getResources(context, skinInfo))) {
                                 handler.sendEmptyMessage(1);
                             } else {
-                                handler.sendEmptyMessage(0);
+                                Message msg = handler.obtainMessage(0);
+                                msg.obj = needRecreate;
+                                msg.sendToTarget();
                             }
 
                         } catch (Throwable e) {
-                            Message message = Message.obtain();
-                            message.what = 2;
+                            Message message = handler.obtainMessage(2);
                             message.obj = e;
-                            handler.sendMessage(message);
+                            message.sendToTarget();
                         }
                     }
                 });
@@ -470,11 +483,17 @@ public final class SkinManager {
             DexFile dexFile = DexFileCompat.loadDexFileByApkFile(context, resources.getSkinInfo().getLocalPath(context));
             boolean reset = false;
 
+            Map<ViewType<? extends View>, List<SkinApplicator<? extends View>>> skinApplicators = null;
+            Map<Integer, SkinThemeApplicator> skinThemeApplicators = null;
+
             try {
                 Class clazz = dexFile.loadClass(registerClass, new FixClassLoader(getClass().getClassLoader(), dexFile));
                 SkinGlobalConfigRegister register = (SkinGlobalConfigRegister) clazz.newInstance();
 
                 //重置所有skinConfig
+                skinApplicators = CollUtils.newMap(mGlobalConfig.mSkinApplicator);
+                skinThemeApplicators = CollUtils.newMap(mGlobalConfig.mSkinThemeApplicator);
+
                 SkinConfig.resetAll();
                 reset = true;
                 register.register(this);
@@ -482,9 +501,12 @@ public final class SkinManager {
 
                 mNeedRecreate = true;
                 return true;
-            } catch (Throwable ignored) {
+            } catch (Throwable ex) {
                 if (reset) {
-                    registerConfig();
+                    mGlobalConfig.mSkinApplicator.putAll(skinApplicators);
+                    mGlobalConfig.mSkinThemeApplicator.putAll(skinThemeApplicators);
+
+                    mGlobalConfig.newImmutable();
                 }
             }
         }
