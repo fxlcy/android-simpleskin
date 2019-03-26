@@ -224,7 +224,9 @@ final class SkinViewInflaterFactory implements BaseViewInflaterFactory.Factory {
 
     private static int[] mergeIntArray(int[] arr1, int[] arr2) {
         if (arr1 == null || arr1.length == 0) {
-            Arrays.sort(arr2);
+            if (arr2 != null) {
+                Arrays.sort(arr2);
+            }
             return arr2;
         } else if (arr2 == null || arr2.length == 0) {
             return arr1;
