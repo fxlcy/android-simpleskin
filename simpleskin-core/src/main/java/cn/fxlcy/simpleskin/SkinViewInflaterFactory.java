@@ -96,7 +96,7 @@ final class SkinViewInflaterFactory implements BaseViewInflaterFactory.Factory {
         a.recycle();
 
         final int count = attributeSet.getAttributeCount();
-        List<SkinViewAttr> skinViewAttrs;
+        List<SkinViewAttr> skinViewAttrs = null;
         final boolean hasSkin = SkinManager.getInstance().getCurrentSkin() != null;
 
         int[] whiteAttrIds = null;
@@ -148,8 +148,9 @@ final class SkinViewInflaterFactory implements BaseViewInflaterFactory.Factory {
         //合并两个数组并去重
         whiteAttrIds = mergeIntArray(mConfig.getWhiteAttrs(), whiteAttrIds);
 
-        skinViewAttrs = resolveWhiteAttrs(context, attributeSet, view, whiteAttrIds, customChanger, hasSkin, skinApplicatorList);
-
+        if (whiteAttrIds != null && whiteAttrIds.length > 0) {
+            skinViewAttrs = resolveWhiteAttrs(context, attributeSet, view, whiteAttrIds, customChanger, hasSkin, skinApplicatorList);
+        }
         final int[] blackAttrIds = mConfig.getBlackAttrs();
 
         for (int i = 0; i < count; i++) {
@@ -223,7 +224,7 @@ final class SkinViewInflaterFactory implements BaseViewInflaterFactory.Factory {
 
     private static int[] mergeIntArray(int[] arr1, int[] arr2) {
         if (arr1 == null || arr1.length == 0) {
-            return arr1;
+            return arr2;
         } else if (arr2 == null || arr2.length == 0) {
             Arrays.sort(arr2);
             return arr1;
@@ -311,7 +312,6 @@ final class SkinViewInflaterFactory implements BaseViewInflaterFactory.Factory {
     }
 
 
-
     private static SkinApplicator<? extends View> getSkinApplicator(List<SkinApplicator<? extends View>> skinApplicatorList, int attrId) {
         for (SkinApplicator<? extends View> skinApplicator : skinApplicatorList) {
             int[] attrs = skinApplicator.getAttrIds();
@@ -325,7 +325,6 @@ final class SkinViewInflaterFactory implements BaseViewInflaterFactory.Factory {
 
         return null;
     }
-
 
 
     //判断是否是android系统自带的属性 如果返回null代表是style 之类的无namespace的属性
