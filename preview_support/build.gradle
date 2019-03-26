@@ -1,0 +1,27 @@
+apply plugin: 'java'
+
+def ideInstallationDir = new File('/home/fxlcy/Android/android-studio')
+
+dependencies {
+  compileOnly 'com.android.tools:common:26.3.1'
+  compileOnly 'com.android.tools.layoutlib:layoutlib-api:26.3.1'
+  if (ideInstallationDir.exists() && ideInstallationDir.isDirectory()) {
+    ['plugins/android/lib/layoutlib-loader.jar',
+     'plugins/android/lib/layoutlib.jar',
+     'plugins/android/lib/layoutlib-api.jar',
+     'plugins/android/lib/sdklib.jar',
+     'plugins/android/lib/android.jar',
+     'lib/util.jar',
+     'lib/openapi.jar',
+     'lib/platform-api.jar'
+    ].each { lib ->
+      compileOnly files(new File(ideInstallationDir, lib))
+    }
+  } else {
+    throw new GradleException('Invalid ide installation dir')
+  }
+}
+
+jar {
+  archiveName('android-simplayout-support.jar')
+}
