@@ -6,7 +6,7 @@ apply plugin: 'kotlin-android'
 apply plugin: 'maven'
 
 group = 'cn.fxlcy.libs.skin'
-version = '1.1.0'
+version = '1.2.0'
 
 uploadArchives {
     repositories {
