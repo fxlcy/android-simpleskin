@@ -17,15 +17,33 @@ public class DefaultSkinGlobalConfigRegister implements SkinGlobalConfigRegister
         skinManager.registerGlobalSkinApplicator(new ViewType<>(View.class, true), new SkinApplicator<View>() {
             @Override
             protected int[] attrIds() {
-                return new int[]{android.R.attr.background};
+                return new int[]{android.R.attr.background, android.R.attr.layout_width, android.R.attr.layout_height};
             }
 
             @Override
-            protected void apply(View view, SkinResources resources, Resources.Theme theme, int attrId, int value) {
+            protected void apply(final View view, final SkinResources resources, Resources.Theme theme, int attrId, final int value) {
                 switch (attrId) {
                     case android.R.attr.background:
                         ViewCompat.setBackground(view,
                                 resources.getDrawable(value, theme));
+                        break;
+                    case android.R.attr.layout_width:
+                        view.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                view.getLayoutParams().width = resources.getDimensionPixelSize(value);
+                                view.requestLayout();
+                            }
+                        });
+                        break;
+                    case android.R.attr.layout_height:
+                        view.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                view.getLayoutParams().width = resources.getDimensionPixelSize(value);
+                                view.requestLayout();
+                            }
+                        });
                         break;
                 }
             }
