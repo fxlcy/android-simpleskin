@@ -13,10 +13,9 @@ import android.text.TextUtils;
 import android.view.View;
 import android.view.Window;
 
-import com.huazhen.library.simplelayout.inflater.BaseViewInflater;
-
 import org.jetbrains.annotations.NotNull;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -30,11 +29,11 @@ import java.util.WeakHashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import cn.fxlcy.layoutinflter.BaseViewInflaterFactory;
 import cn.fxlcy.simpleskin.config.Constants;
 import cn.fxlcy.simpleskin.util.CollUtils;
 import cn.fxlcy.simpleskin.util.Objects;
 import cn.fxlcy.simpleskin.util.SimpleActivityLifecycleCallbacks;
-import dalvik.system.DexFile;
 import dalvik.system.DexFileCompat;
 
 public final class SkinManager {
@@ -347,7 +346,7 @@ public final class SkinManager {
             factory2 = new SkinViewInflaterFactory(skinConfig);
         }
 
-        BaseViewInflater.addInflater(activity, factory2);
+        BaseViewInflaterFactory.addInflater(activity, factory2);
 
         Window window = activity.getWindow();
         if (window != null) {
@@ -480,14 +479,21 @@ public final class SkinManager {
         Bundle bundle = resources.mApplicationInfo.metaData;
         if (bundle != null) {
             String registerClass = bundle.getString(Constants.METE_DATA_KEY_GLOBAL_CONFIG_REGISTER);
-            DexFile dexFile = DexFileCompat.loadDexFileByApkFile(context, resources.getSkinInfo().getLocalPath(context));
+
+            ClassLoader classLoader = DexFileCompat.getClassLoaderByApk(context, new File(resources.getSkinInfo().getLocalPath(context)), getClass()
+                    .getClassLoader());
+
+            if (classLoader == null) {
+                return false;
+            }
+
             boolean reset = false;
 
             Map<ViewType<? extends View>, List<SkinApplicator<? extends View>>> skinApplicators = null;
             Map<Integer, SkinThemeApplicator> skinThemeApplicators = null;
 
             try {
-                Class clazz = dexFile.loadClass(registerClass, new FixClassLoader(getClass().getClassLoader(), dexFile));
+                Class clazz = classLoader.loadClass(registerClass);
                 SkinGlobalConfigRegister register = (SkinGlobalConfigRegister) clazz.newInstance();
 
                 //重置所有skinConfig

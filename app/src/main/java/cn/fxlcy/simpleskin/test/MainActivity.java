@@ -165,8 +165,6 @@ public class MainActivity extends AppCompatActivity {
             SkinManager.getInstance().switchSkinByAssets(this, "skin/skin1.skin", null);
         } else if (view.getId() == R.id.btn_restore_skin) {
             SkinManager.getInstance().restoreSkin(this);
-        } else if (view.getId() == R.id.btn_change_skin2) {
-            SkinManager.getInstance().switchSkinByAssets(this, "skin/skin3.skin", null);
         }
     }
 }

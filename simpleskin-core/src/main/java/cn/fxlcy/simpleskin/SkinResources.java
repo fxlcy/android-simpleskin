@@ -92,7 +92,7 @@ public class SkinResources {
     public Drawable getDrawableForDensity(int id, int density, Resources.Theme theme) {
         final ResourceId resourceId = getResourceId(id);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            return getResources(resourceId).getDrawableForDensity(resourceId.id, density, theme);
+            return getResources(resourceId).getDrawableForDensity(resourceId.id, density, resourceId.isNew ? null : theme);
         } else {
             return getResources(resourceId).getDrawableForDensity(resourceId.id, density);
         }
@@ -102,7 +102,7 @@ public class SkinResources {
     public int getColor(int id, Resources.Theme theme) throws Resources.NotFoundException {
         final ResourceId resourceId = getResourceId(id);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return getResources(resourceId).getColor(resourceId.id, theme);
+            return getResources(resourceId).getColor(resourceId.id, resourceId.isNew ? null : theme);
         } else {
             return getResources(resourceId).getColor(resourceId.id);
         }
@@ -117,7 +117,7 @@ public class SkinResources {
     public ColorStateList getColorStateList(int id, Resources.Theme theme) throws Resources.NotFoundException {
         final ResourceId resourceId = getResourceId(id);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            return getResources(resourceId).getColorStateList(resourceId.id, theme);
+            return getResources(resourceId).getColorStateList(resourceId.id, resourceId.isNew ? null : theme);
         } else {
             return getResources(resourceId).getColorStateList(resourceId.id);
         }

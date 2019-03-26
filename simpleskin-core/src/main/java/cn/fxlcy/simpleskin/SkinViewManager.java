@@ -96,12 +96,12 @@ public final class SkinViewManager {
     }
 
 
-    void destroy(Activity activity) {
+    final void destroy(Activity activity) {
         mSkinViews.remove(activity);
         mSkinThemeAttrs.remove(activity);
     }
 
-    boolean addSkinView(View view, List<SkinViewAttr> attrs) {
+    final boolean addSkinView(View view, List<SkinViewAttr> attrs) {
         Context context = view.getContext();
 
         Activity activity = ContextUtils.getActivityByContext(context);
@@ -122,7 +122,7 @@ public final class SkinViewManager {
     }
 
 
-    void loadSkinThemeAttrs(Context context, SkinViewInflaterFactory factory) {
+    final void loadSkinThemeAttrs(Context context, SkinViewInflaterFactory factory) {
         final Activity activity = ContextUtils.getActivityByContext(context);
 
         int themeAttrArr[] = SkinManager.getInstance().getSkinThemeAttrArr(factory);

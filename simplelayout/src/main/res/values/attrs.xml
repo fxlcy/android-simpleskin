@@ -1,0 +1,71 @@
+<resources>
+    <attr name="textPressedColor" format="color" />
+    <attr name="textNoEnabledColor" format="color" />
+    <attr name="textSelectedColor" format="color" />
+    <attr name="textFocusedColor" format="color" />
+    <attr name="textCheckedColor" format="color" />
+
+    <declare-styleable name="SimpleLayout_TextView">
+        <attr name="textPressedColor" />
+        <attr name="textNoEnabledColor" />
+        <attr name="textSelectedColor" />
+        <attr name="textFocusedColor" />
+        <attr name="textCheckedColor" />
+        <attr name="android:textColor" />
+    </declare-styleable>
+
+
+
+    <attr name="drawableType">
+        <enum name="SHAPE" value="0" />
+        <enum name="SELECTOR" value="1" />
+    </attr>
+    <attr name="defaultColor" format="color" />
+    <attr name="pressedColor" format="color" />
+    <attr name="noEnabledColor" format="color" />
+    <attr name="selectedColor" format="color" />
+    <attr name="focusedColor" format="color" />
+    <attr name="checkedColor" format="color" />
+
+    <attr name="topLeftRadius" format="dimension" />
+    <attr name="topRightRadius" format="dimension" />
+    <attr name="bottomLeftRadius" format="dimension" />
+    <attr name="bottomRightRadius" format="dimension" />
+    <attr name="radius" format="dimension" />
+    <attr name="strokeWidth" format="dimension" />
+    <attr name="strokeColor" format="color" />
+    <attr name="strokePressedColor" format="color" />
+    <attr name="strokeNoEnabledColor" format="color" />
+    <attr name="strokeFocusedColor" format="color" />
+    <attr name="strokeSelectedColor" format="color" />
+    <attr name="strokeCheckedColor" format="color" />
+    <attr name="ripple" format="boolean" />
+    <attr name="pressedAlpha" format="float" />
+
+    <declare-styleable name="SimpleLayout_CommonDrawable">
+        <attr name="drawableType" />
+        <attr name="defaultColor" />
+        <attr name="pressedColor" />
+        <attr name="noEnabledColor" />
+        <attr name="selectedColor" />
+        <attr name="focusedColor" />
+        <attr name="checkedColor" />
+
+        <attr name="strokePressedColor" />
+        <attr name="strokeNoEnabledColor" />
+        <attr name="strokeFocusedColor" />
+        <attr name="strokeCheckedColor" />
+        <attr name="strokeSelectedColor" />
+
+        <attr name="topLeftRadius" />
+        <attr name="topRightRadius" />
+        <attr name="bottomLeftRadius" />
+        <attr name="bottomRightRadius" />
+        <attr name="radius" />
+        <attr name="strokeWidth" />
+        <attr name="strokeColor" />
+        <attr name="ripple" />
+
+        <attr name="pressedAlpha" />
+    </declare-styleable>
+</resources>

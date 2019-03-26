@@ -7,16 +7,15 @@ import android.util.AttributeSet;
 import android.util.SparseArray;
 import android.view.View;
 
-import com.huazhen.library.simplelayout.inflater.BaseViewInflater;
-
 import java.util.Arrays;
 import java.util.LinkedList;
 import java.util.List;
 
+import cn.fxlcy.layoutinflter.BaseViewInflaterFactory;
 import cn.fxlcy.lib.simpleskin.R;
 import cn.fxlcy.simpleskin.util.Objects;
 
-final class SkinViewInflaterFactory implements BaseViewInflater.Factory {
+final class SkinViewInflaterFactory implements BaseViewInflaterFactory.Factory {
 
     private final static String TAG = "SkinViewInflaterFactory";
 

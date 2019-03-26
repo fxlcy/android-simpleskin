@@ -1,4 +1,4 @@
-package com.huazhen.library.simplelayout.inflater;
+package cn.fxlcy.layoutinflter;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
@@ -31,7 +31,6 @@ import android.view.InflateException;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewParent;
-import android.view.ViewStub;
 import android.view.Window;
 import android.webkit.WebView;
 
@@ -45,7 +44,7 @@ import java.util.Map;
  * Created by fxlcy on 2017/12/25.
  */
 @SuppressLint("RestrictedApi")
-public class BaseViewInflater implements LayoutInflater.Factory2 {
+public class BaseViewInflaterFactory implements LayoutInflater.Factory2 {
 
     private static final Class<?>[] sConstructorSignature = new Class[]{
             Context.class, AttributeSet.class};
@@ -73,9 +72,9 @@ public class BaseViewInflater implements LayoutInflater.Factory2 {
         View onCreateView(View parent, View view, String name, Context context, AttributeSet attrs);
     }
 
-    public static BaseViewInflater injectInflater(final Activity activity) {
+    public static BaseViewInflaterFactory injectInflater(final Activity activity) {
         LayoutInflater inflater = LayoutInflater.from(activity);
-        BaseViewInflater i = new BaseViewInflater(activity);
+        BaseViewInflaterFactory i = new BaseViewInflaterFactory(activity);
         LayoutInflaterCompat.setFactory2(inflater, i);
         return i;
     }
@@ -83,10 +82,10 @@ public class BaseViewInflater implements LayoutInflater.Factory2 {
     public static void addInflater(Activity activity, Factory factory) {
         LayoutInflater inflater = LayoutInflater.from(activity);
         LayoutInflater.Factory2 factory2 = inflater.getFactory2();
-        BaseViewInflater bi;
+        BaseViewInflaterFactory bi;
 
-        if (factory2 instanceof BaseViewInflater) {
-            bi = (BaseViewInflater) factory2;
+        if (factory2 instanceof BaseViewInflaterFactory) {
+            bi = (BaseViewInflaterFactory) factory2;
         } else {
             bi = injectInflater(activity);
         }
@@ -100,7 +99,7 @@ public class BaseViewInflater implements LayoutInflater.Factory2 {
         factories.add(factory);
     }
 
-    public BaseViewInflater(Activity activity) {
+    public BaseViewInflaterFactory(Activity activity) {
         mWindow = activity.getWindow();
         mOriginalWindowCallback = mWindow.getCallback();
     }
@@ -108,7 +107,6 @@ public class BaseViewInflater implements LayoutInflater.Factory2 {
 
     public View createView(View parent, final String name, @NonNull Context context,
                            @NonNull AttributeSet attrs) {
-
         View view = callActivityOnCreateView(parent, name, context, attrs);
         if (view != null) {
             return view;
@@ -281,11 +279,10 @@ public class BaseViewInflater implements LayoutInflater.Factory2 {
                 sConstructorMap.put(name, constructor);
             }
             constructor.setAccessible(true);
-
             return constructor.newInstance(mConstructorArgs);
-        } catch (Throwable e) {
-            Log.i(LOG_TAG, "createView:" + name + " fail error:"
-                    + e.toString());
+        } catch (Exception e) {
+            // We do not want to catch these, lets return null and let the actual LayoutInflater
+            // try
             return null;
         }
     }
