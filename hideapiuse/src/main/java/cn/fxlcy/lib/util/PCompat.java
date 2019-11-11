@@ -9,31 +9,53 @@ public final class PCompat {
     private PCompat() {
     }
 
-    private static Field mClassLoaderField;
+    private static Field sClassLoaderField;
 
-    public static boolean compat(Class clazz) {
-        if (mClassLoaderField == null) {
+
+    private static void findField() {
+        if (sClassLoaderField == null) {
             synchronized (PCompat.class) {
-                if (mClassLoaderField == null) {
+                if (sClassLoaderField == null) {
                     try {
-                        mClassLoaderField = Class.class.getDeclaredField("classLoader");
-                        mClassLoaderField.setAccessible(true);
+                        sClassLoaderField = Class.class.getDeclaredField("classLoader");
+                        sClassLoaderField.setAccessible(true);
                     } catch (Throwable ignored) {
                     }
                 }
             }
         }
 
-        if (mClassLoaderField == null) {
-            return false;
+    }
+
+    public static ClassLoader compat(Class clazz) {
+
+        findField();
+
+        if (sClassLoaderField == null) {
+            return null;
         } else {
             try {
-                mClassLoaderField.set(clazz, null);
-                return true;
+                ClassLoader classLoader = (ClassLoader) sClassLoaderField.get(clazz);
+                sClassLoaderField.set(clazz, null);
+                return classLoader;
             } catch (Throwable e) {
-                return false;
+                return null;
             }
         }
 
+    }
+
+    public static void reset(Class clazz, ClassLoader classLoader) {
+        if (classLoader != null) {
+            findField();
+
+            if (sClassLoaderField != null) {
+                try {
+                    sClassLoaderField.set(clazz, classLoader);
+                } catch (IllegalAccessException e) {
+                    e.printStackTrace();
+                }
+            }
+        }
     }
 }

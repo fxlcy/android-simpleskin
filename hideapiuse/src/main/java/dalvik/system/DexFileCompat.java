@@ -23,21 +23,7 @@ public class DexFileCompat {
     private static boolean sHavePermission = true;
 
 
-    private static Boolean sCompatP = null;
-
     public final static int VERSION_O = 26;
-
-    private static boolean isCompatP() {
-        if (sCompatP == null) {
-            synchronized (DexFileCompat.class) {
-                if (sCompatP == null) {
-                    sCompatP = PCompat.compat(DexFileCompat.class);
-                }
-            }
-        }
-
-        return sCompatP;
-    }
 
     public static ClassLoader getClassLoaderByApk(Context context, File apk, ClassLoader parent) {
         final boolean loadByByteBuffer = Build.VERSION.SDK_INT >= VERSION_O;
@@ -71,7 +57,7 @@ public class DexFileCompat {
             while ((zipEntry = zis.getNextEntry()) != null) {
                 final String name = zipEntry.getName();
                 if ("classes.dex".equals(name)) {
-                    if(loadByByteBuffer) {
+                    if (loadByByteBuffer) {
 
                         byteArrayOutputStream
                                 = new ByteArrayOutputStream();
@@ -82,7 +68,7 @@ public class DexFileCompat {
 
 
                         return new InMemoryDexClassLoader(ByteBuffer.wrap(byteArrayOutputStream.toByteArray()), parent);
-                    }else{
+                    } else {
                         File p = path.getParentFile();
                         if (!p.exists() || !p.isDirectory()) {
                             if (!p.isDirectory()) {
@@ -256,34 +242,55 @@ public class DexFileCompat {
     }
 
     public static DexFile loadDexFile(Context context, String path) {
+        ClassLoader classLoader = null;
+
+        if (Build.VERSION.SDK_INT >= PCompat.VERSION_P && context.getApplicationInfo().targetSdkVersion >= PCompat.VERSION_P) {
+            classLoader = PCompat.compat(DexFileCompat.class);
+        }
+
+        DexFile dexFile = null;
+
+
         try {
-            return new DexFile(path);
+            dexFile = new DexFile(path);
         } catch (IllegalAccessError error) {
-            return loadDexFileByPathReflection(path);
+            dexFile = loadDexFileByPathReflection(path);
         } catch (Throwable ignored) {
         }
 
-        return null;
+        PCompat.reset(DexFileCompat.class, classLoader);
+
+        return dexFile;
     }
 
     public static DexFile loadDexFile(Context context, ByteBuffer byteBuffer) {
 
+        ClassLoader classLoader = null;
+
         if (Build.VERSION.SDK_INT >= PCompat.VERSION_P && context.getApplicationInfo().targetSdkVersion >= PCompat.VERSION_P) {
-            isCompatP();
+            classLoader = PCompat.compat(DexFileCompat.class);
         }
+
+        DexFile dexFile;
 
         if (sHavePermission) {
             try {
-                return new DexFile(byteBuffer);
+                dexFile = new DexFile(byteBuffer);
             } catch (IllegalAccessError error) {
                 synchronized (DexFileCompat.class) {
                     sHavePermission = false;
                 }
-                return loadDexFileByByteButterReflection(byteBuffer);
+                dexFile = loadDexFileByByteButterReflection(byteBuffer);
             }
         } else {
-            return loadDexFileByByteButterReflection(byteBuffer);
+            dexFile = loadDexFileByByteButterReflection(byteBuffer);
         }
+
+        if (classLoader != null) {
+            PCompat.reset(DexFileCompat.class, classLoader);
+        }
+
+        return dexFile;
     }
 
     private static DexFile loadDexFileByByteButterReflection(ByteBuffer byteBuffer) {

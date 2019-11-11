@@ -293,15 +293,15 @@ public class BaseViewInflaterFactory implements LayoutInflater.Factory2 {
     @SuppressLint("PrivateResource")
     private static Context themifyContext(Context context, AttributeSet attrs,
                                           boolean useAndroidTheme, boolean useAppTheme) {
-        final TypedArray a = context.obtainStyledAttributes(attrs, android.support.v7.appcompat.R.styleable.View, 0, 0);
+        final TypedArray a = context.obtainStyledAttributes(attrs, R.styleable.View, 0, 0);
         int themeId = 0;
         if (useAndroidTheme) {
             // First try reading android:theme if enabled
-            themeId = a.getResourceId(android.support.v7.appcompat.R.styleable.View_android_theme, 0);
+            themeId = a.getResourceId(R.styleable.View_android_theme, 0);
         }
         if (useAppTheme && themeId == 0) {
             // ...if that didn't work, try reading app:theme (for legacy reasons) if enabled
-            themeId = a.getResourceId(android.support.v7.appcompat.R.styleable.View_theme, 0);
+            themeId = a.getResourceId(R.styleable.View_theme, 0);
 
             if (themeId != 0) {
                 Log.i(LOG_TAG, "app:theme is now deprecated. "

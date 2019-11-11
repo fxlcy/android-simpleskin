@@ -1,1 +1,2 @@
-include ':app', ':simpleskin-core', ':skin1', ':hideapi', ':hideapiuse', ':layout_inflater', ':simplelayout', ':preview_support'
+include ':app', ':simpleskin-core', ':skin1', ':hideapi', ':hideapiuse'
+include ':layout_inflater', ':simplelayout', ':preview_support',':unicode_emoji'

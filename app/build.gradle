@@ -64,6 +64,8 @@ dependencies {
     implementation project(':simpleskin-core')
 //    implementation project(':hideapiuse')
 
+    implementation project(":unicode_emoji")
+
     compileOnly files('libs/rt.jar')
 
 }
@@ -123,9 +125,13 @@ def copyMappingTask = task copyMapping(type: Copy) {
 
 
 afterEvaluate {
+
     tasks.findAll {
         it.name.startsWith("resguard") && it.name.endsWith("Release")
     }.each {
+        it.doFirst {
+
+        }
         it.dependsOn copyMappingTask
     }
 }

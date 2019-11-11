@@ -16,9 +16,11 @@
             <option value="$PROJECT_DIR$/simplelayout" />
             <option value="$PROJECT_DIR$/simpleskin-core" />
             <option value="$PROJECT_DIR$/skin1" />
+            <option value="$PROJECT_DIR$/unicode_emoji" />
           </set>
         </option>
         <option name="resolveModulePerSourceSet" value="false" />
+        <option name="testRunner" value="PLATFORM" />
       </GradleProjectSettings>
     </option>
   </component>

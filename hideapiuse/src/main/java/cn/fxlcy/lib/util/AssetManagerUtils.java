@@ -9,50 +9,41 @@ import static cn.fxlcy.lib.util.PCompat.VERSION_P;
 
 public final class AssetManagerUtils {
 
-    private static Boolean sCompatP = null;
-
-    private static boolean isCompatP() {
-        if (sCompatP == null) {
-            synchronized (AssetManagerUtils.class) {
-                if (sCompatP == null) {
-                    sCompatP = PCompat.compat(AssetManagerUtils.class);
-                }
-            }
-        }
-
-        return sCompatP;
-    }
 
     public static AssetManager createAssetManager(Context context, String path) {
         final int sdkInt = Build.VERSION.SDK_INT;
+        ClassLoader classLoader = null;
+
+        AssetManager assetManager = null;
+
+
         try {
-            if (sdkInt >= VERSION_P && (context.getApplicationInfo().targetSdkVersion < VERSION_P || isCompatP())) {
+
+            if (sdkInt >= VERSION_P && context.getApplicationInfo().targetSdkVersion < VERSION_P) {
+                classLoader = PCompat.compat(AssetManagerUtils.class);
+            }
+
+
+            if (sdkInt >= VERSION_P) {
                 ApkAssets apkAssets = ApkAssets.loadFromPath(path);
-                AssetManager assetManager = new AssetManager();
+                assetManager = new AssetManager();
                 assetManager.setApkAssets(new ApkAssets[]{apkAssets}, true);
-
-                return assetManager;
             } else {
-                AssetManager assetManager = new AssetManager();
+                assetManager = new AssetManager();
                 assetManager.addAssetPath(path);
-
-                return assetManager;
             }
         } catch (Throwable throwable) {
             try {
                 if (sdkInt >= VERSION_P) {
-                    AssetManager assetManager = new AssetManager();
+                    assetManager = new AssetManager();
                     assetManager.addAssetPath(path);
-
-                    return assetManager;
                 }
             } catch (Throwable e) {
-                throw new RuntimeException("无法加载皮肤包", e);
             }
-
-
-            throw new RuntimeException("无法加载皮肤包", throwable);
         }
 
+        PCompat.reset(AssetManagerUtils.class, classLoader);
+
+        return assetManager;
     }
 }
